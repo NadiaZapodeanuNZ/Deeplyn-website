@@ -179,3 +179,39 @@ cython_debug/
 #  refer to https://docs.cursor.com/context/ignore-files
 .cursorignore
 .cursorindexingignore
+
+# Node.js and JavaScript ecosystem
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Vite and frontend build outputs
+.vite/
+dist/
+build/
+.parcel-cache/
+
+# VS Code settings (specific to developer machine)
+.vscode/
+
+# Operating system files
+.DS_Store
+Thumbs.db
+desktop.ini
+*~
+*.bak
+
+# Django collected static files and user uploads
+staticfiles/
+media/
+
+# Frontend environment files (additional safety)
+frontend/.env
+frontend/.env.local
+frontend/.env.production
+
+# Backend environment files (additional safety)
+backend/.env
+backend/.env.local
