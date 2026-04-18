@@ -149,6 +149,7 @@ REST_FRAMEWORK = {
     # all endpoints will use JWT authentication by default
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
+        'users.authentication.CookieJWTAuthentication',
     ),
     # by default, all endpoints will require authentication, but we can override this in specific views if needed
     # for example, we can allow unauthenticated access to the registration and login endpoints
@@ -159,6 +160,8 @@ REST_FRAMEWORK = {
     'DEFAULT_FILTER_BACKENDS': (
         'django_filters.rest_framework.DjangoFilterBackend',
     ),
+
+
 }
 
 SIMPLE_JWT = {

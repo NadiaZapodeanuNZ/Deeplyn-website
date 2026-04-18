@@ -2,7 +2,8 @@ from django.urls import path
 from users.views import (
     register, verify_email, resend_token,
     login, login_with_link, logout, refresh_token,
-    forgot_password, reset_password,
+    forgot_password, reset_password,me,
+    
 )
 
 urlpatterns = [
@@ -20,4 +21,7 @@ urlpatterns = [
     # Password management
     path('forgot-password/', forgot_password, name='forgot-password'),
     path('reset-password/', reset_password, name='reset-password'),
+    path('me/', me, name='current-user'),
+    # path('delete-account/', delete_account, name='delete-account'),
+
 ]

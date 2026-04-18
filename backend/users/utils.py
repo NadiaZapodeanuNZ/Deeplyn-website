@@ -119,6 +119,27 @@ from django.core.mail import EmailMultiAlternatives
 from decouple import config
 from django.template.loader import render_to_string
 
+
+def format_block_message(blocked_until):
+#  this message is for the user when he is blocked for 
+#  too many login attempts. 
+#  we calculate the remaining time until the block 
+#  is lifted and we return a message 
+#  with the remaining time in minutes or hours.
+    
+    delta = blocked_until - timezone.now()
+    total_minutes = max(0, int(delta.total_seconds() // 60))
+
+    if total_minutes >= 60:
+        hours = total_minutes // 60
+        unit = "hour" if hours == 1 else "hours"
+        return f"Too many attempts. Try again in {hours} {unit}."
+
+    # if less than 60 minutes, show minutes
+    unit = "minute" if total_minutes == 1 else "minutes"
+    return f"Too many attempts. Try again in {total_minutes} {unit}."
+
+
 def create_verification_and_send_email(user):
     token = generate_and_store_token(user)
     send_verification_email(user, token)
@@ -165,8 +186,12 @@ def send_verification_email(user, token):
     email.send()
     
 def send_forgot_password_email(user, token):
-    magic_link = f"http://localhost:5173/login/with-link?token={token}"
-    reset_link = f"http://localhost:5173/reset-password?token={token}"
+    # magic_link = f"http://localhost:5173/login/with-link?token={token}"
+    # reset_link = f"http://localhost:5173/reset-password?token={token}"
+    
+    magic_link = f"http://localhost:8000/api/users/login/with-link?token={token}"
+    reset_link = f"http://localhost:8000/api/users/reset-password?token={token}"
+
 
     subject = "Reset your Deeplyn password"
 
