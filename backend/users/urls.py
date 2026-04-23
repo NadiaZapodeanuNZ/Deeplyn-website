@@ -22,6 +22,5 @@ urlpatterns = [
     path('forgot-password/', forgot_password, name='forgot-password'),
     path('reset-password/', reset_password, name='reset-password'),
     path('me/', me, name='current-user'),
-    # path('delete-account/', delete_account, name='delete-account'),
 
 ]

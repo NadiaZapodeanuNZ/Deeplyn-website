@@ -1,4 +1,5 @@
 import hmac
+from tokenize import TokenError
 from django.utils import timezone
 from datetime import timedelta
 import uuid
@@ -26,9 +27,7 @@ MAX_RESEND_ATTEMPTS  = 5
 @permission_classes([AllowAny])
 def register(request):
     serializer = RegisterSerializer(data=request.data)
-
-    if not serializer.is_valid():
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    serializer.is_valid(raise_exception=True)
 
     user = serializer.save()
     create_verification_and_send_email(user)
@@ -110,23 +109,6 @@ def verify_email(request):
             status=status.HTTP_400_BAD_REQUEST,
         )
 
-    # if verification.token != token:
-    #     verification.resend_attempts += 1
-
-    #     if verification.resend_attempts >= 5:
-    #         verification.blocked_until = timezone.now() + timedelta(hours=24)
-    #         verification.save(update_fields=['resend_attempts', 'blocked_until'])
-    #         return Response(
-    #             {"error": "Too many wrong attempts. Try again in 24 hours."},
-    #             status=status.HTTP_429_TOO_MANY_REQUESTS,
-    #         )
-        
-    #     remaining_attempts = 5 - verification.resend_attempts
-    #     verification.save(update_fields=['resend_attempts'])
-    #     return Response(
-    #         {"error": f"Invalid token. {remaining_attempts} attempts remaining."},
-    #         status=status.HTTP_400_BAD_REQUEST,
-    #     )
 
     if not hmac.compare_digest(verification.token, token):
         # Wrong token — we increment the counter ATOMICALLY using F().
@@ -138,7 +120,7 @@ def verify_email(request):
 
         verification.refresh_from_db(fields=['failed_attempts'])
 
-        # if the user has reached the max failed attempts, we block him
+        # if the user has reached the max failed attempts, we block the user for 24 hours
         if verification.failed_attempts >= MAX_FAILED_ATTEMPTS:
             verification.blocked_until = (timezone.now() + timedelta(hours=BLOCK_DURATION_HOURS))
             verification.save(update_fields=['blocked_until'])
@@ -226,7 +208,6 @@ def refresh_token(request):
             status=status.HTTP_200_OK,
         )
 
-        # setam noul access token in cookie
         response.set_cookie(
             key = 'access_token',
             value = str(refresh.access_token),
@@ -248,36 +229,28 @@ def refresh_token(request):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def logout(request):
-    try:
-        refresh_token = request.COOKIES.get('refresh_token')
+    refresh_token = request.COOKIES.get('refresh_token')
 
-        if not refresh_token:
-            return Response(
-                {"error": "Refresh token is required."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        token = RefreshToken(refresh_token)
-        token.blacklist()
-
-        request.user.is_logged_in = False
-        request.user.save(update_fields=['is_logged_in'])
-
-        response = Response(
-            {"message": "Logout successful."},
-            status=status.HTTP_200_OK,
-        )
-
-        response.delete_cookie('access_token')
-        response.delete_cookie('refresh_token')
-
-        return response
-
-    except Exception as e:
+    if not refresh_token:
         return Response(
-            {"error": "Invalid token."},
+            {"error": "Refresh token is required."},
             status=status.HTTP_400_BAD_REQUEST,
         )
+    response = Response(
+        {"message": "Logout successful."},
+        status=status.HTTP_200_OK,
+    )
+    response.delete_cookie('access_token')
+    response.delete_cookie('refresh_token')
+
+    try:
+        token = RefreshToken(refresh_token)
+        token.blacklist()
+    except TokenError:
+        pass
+
+    return response
+
 
 # -----------------FORGOT PASSWORD-----------------------
 @api_view(['POST'])
@@ -319,7 +292,6 @@ def forgot_password(request):
 
     reset.request_attempts += 1
 
-    # daca a depasit limita, il blocam 1 ora
     if reset.request_attempts >= MAX_FORGOT_ATTEMPTS:
         reset.blocked_until = timezone.now() + timedelta(minutes=FORGOT_BLOCK_MINUTES)
         reset.save(update_fields=['request_attempts', 'blocked_until'])
@@ -363,7 +335,6 @@ def reset_password(request):
             status=status.HTTP_400_BAD_REQUEST,
         )
 
-    # if the link is expired
     if reset.is_expired():
         return Response(
             {"error": "Token expired. Please request a new one."},
@@ -388,6 +359,7 @@ def reset_password(request):
         {"message": "Password reset successfully. You can now log in."},
         status=status.HTTP_200_OK,
     )
+
 # ---------------------RESEND TOKEN0-------------
 @api_view(['POST'])
 @permission_classes([AllowAny])
@@ -462,7 +434,7 @@ def login_with_link(request):
     if reset.is_expired():
         return Response({"error": "Link expired. Please request a new one."}, status=status.HTTP_400_BAD_REQUEST)
 
-    # marcam tokenul ca folosit — nu mai poate fi folosit nici pentru reset, nici pentru login
+
     reset.is_used = True
     reset.save(update_fields=['is_used'])
 
@@ -479,23 +451,6 @@ def login_with_link(request):
     return response
 
 
-# @api_view(['DELETE'])
-# @permission_classes([IsAuthenticated])
-# def delete_account(request):
-#     serializer = DeleteAccountSerializer(
-#         data=request.data,
-#         context={'request': request}
-#     )
-#     serializer.is_valid(raise_exception=True)
-
-#     request.user.delete()
-
-#     return Response(
-#         {"detail": "Contul a fost șters cu succes."},
-#         status=status.HTTP_204_NO_CONTENT
-#     )
-
-
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def me(request):
@@ -504,4 +459,6 @@ def me(request):
         "id": user.id,
         "username": user.username,
         "email": user.email,
+        "is_active": user.is_active,
+        "date_joined": user.date_joined,
     }, status=status.HTTP_200_OK)

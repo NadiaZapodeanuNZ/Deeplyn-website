@@ -1,16 +1,18 @@
 import re
-import uuid
-from django.utils.crypto import get_random_string
-from django.core.cache import cache
-from django.conf import settings
 from rest_framework import serializers
 from users.models import User 
-from django.contrib.auth import authenticate 
-from django.core.cache import cache
-from django.core.mail import send_mail
-from django.db.models import Q, F
-import random
-
+from django.db.models import Q
+from users.exceptions import (
+    EmailOrUsernameAlreadyExists,
+    InvalidCredentials, 
+    AccountNotActivated,
+    PasswordMismatch,
+    InvalidEmail,
+    InvalidPassword,
+    InvalidPasswordLength,
+    InvalidUsername,
+    AllFieldsRequired,
+)
 
 # class register
 # it provides us the usual validation that we need
@@ -40,7 +42,7 @@ class RegisterSerializer(serializers.ModelSerializer):
         # i used 2 parts  
         if len(parts) != 2 or not parts[0] or '.' not in domain \
             or domain.startswith('.') or domain.endswith('.'):
-            raise serializers.ValidationError("Enter a valid email address.")
+            raise InvalidEmail()
         # so in this case we validate an email by having . and @ and the actual 
         # validation consists in sending an otp tu user email:))))
         return email
@@ -48,22 +50,18 @@ class RegisterSerializer(serializers.ModelSerializer):
     def validate_username(self, value):
         value = value.strip()
         if not (4 <= len(value) <= 32):
-            raise serializers.ValidationError("Username must be between 8 and 32 characters.")
+            raise InvalidUsername()
         return value
 
     def validate_password(self, value):
   
         if not (8 <= len(value) <= 32):
-            raise serializers.ValidationError(
-                "Password must be between 8 and 32 characters."
-            )
+                raise InvalidPasswordLength()
 
         pattern = r'^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[!@#$%^&*()\-_=+\[\]{}|;:,.<>?/\\`~"\']).*$'
         if not re.match(pattern, value):
-            raise serializers.ValidationError(
-                "Password must contain at least one uppercase letter, "
-                "one lowercase letter, one number, and one special character."
-            )
+            raise InvalidPassword()
+
         return value
 
 
@@ -71,12 +69,10 @@ class RegisterSerializer(serializers.ModelSerializer):
         required = ['username', 'email', 'password', 'confirm_pass']
         for field in required:
             if not attrs.get(field, '').strip():
-                raise serializers.ValidationError("All fields are required.")
+                raise AllFieldsRequired()
 
         if attrs['password'] != attrs['confirm_pass']:
-            raise serializers.ValidationError(
-                {"confirm_pass": "Passwords do not match."}
-            )
+            raise PasswordMismatch()
 
         existing_user_by_email = User.objects.filter(
             email__iexact=attrs['email']
@@ -87,9 +83,7 @@ class RegisterSerializer(serializers.ModelSerializer):
         # the server will refuse the registration to prevent any form of unauthorized access.
 
         if existing_user_by_email and existing_user_by_email.is_active:
-            raise serializers.ValidationError(
-                {"email": "An account with this email or username already exists."}
-            )
+            raise EmailOrUsernameAlreadyExists()
         
         # Case 2: If the email belongs to an INACTIVE account.
         # This means that someone started the registration process but never
@@ -105,18 +99,14 @@ class RegisterSerializer(serializers.ModelSerializer):
             ).first()
 
             if conflicting_username:
-                raise serializers.ValidationError(
-                    {"username": "An account with this email or username already exists."}
-                )
+                raise EmailOrUsernameAlreadyExists()
             attrs['_existing_inactive_user'] = existing_user_by_email
             return attrs
 
         # Case 3 : If the email is completely new, it doesn't exist at all in the database.
         # We only check if the username is free.
         if User.objects.filter(username__iexact=attrs['username']).exists():
-            raise serializers.ValidationError(
-                {"username": "An account with this email or username already exists."}
-            )
+            raise EmailOrUsernameAlreadyExists()
 
         return attrs
 
@@ -154,8 +144,10 @@ class LoginSerializer(serializers.Serializer):
         password = attrs.get('password', '')
         remember_me = attrs.get('remember_me', False)
 
-        if not identifier or not password:
-            raise serializers.ValidationError("All fields are required.")
+        if not identifier:
+            raise AllFieldsRequired()
+        if not password:
+            raise AllFieldsRequired()
 
         # the login is based on email or username
         # so an user can loggin with email or username
@@ -164,15 +156,15 @@ class LoginSerializer(serializers.Serializer):
                 Q(email__iexact=identifier) | Q(username__iexact=identifier)
             )
         except User.DoesNotExist:
-            raise serializers.ValidationError("Invalid credentials.")
+            raise InvalidCredentials()
 
         # verifying the password
         if not user.check_password(password):
-            raise serializers.ValidationError("Invalid credentials.")
+            raise InvalidCredentials()
 
         # if the email is verified
         if not user.is_active:
-            raise serializers.ValidationError("Account is not activated. Please verify your email.")
+            raise AccountNotActivated(details={"email": user.email})
 
         attrs['user'] = user
         attrs['remember_me'] = remember_me
@@ -182,10 +174,13 @@ class ForgotPasswordSerializer(serializers.Serializer):
     # the logic here is that the user uses the email to connect to her/his account
     email = serializers.CharField()
     def validate_email(self, value):
-        value = value.strip().lower()
-        if '@' not in value or '.' not in value:
-            raise serializers.ValidationError("Enter a valid email address.")
-        return value
+        email = value.strip().lower()
+        parts = email.split('@')
+        domain = parts[1] if len(parts) == 2 else ''
+        if len(parts) != 2 or not parts[0] or '.' not in domain \
+            or domain.startswith('.') or domain.endswith('.'):
+            raise InvalidEmail()
+        return email
 
 class ResetPasswordSerializer(serializers.Serializer):
     password = serializers.CharField(write_only=True)
@@ -193,103 +188,14 @@ class ResetPasswordSerializer(serializers.Serializer):
 
     def validate_password(self, value):
         if not (8 <= len(value) <= 32):
-            raise serializers.ValidationError(
-                "Password must be between 8 and 32 characters."
-            )
+            raise InvalidPasswordLength()
         pattern = r'^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[!@#$%^&*()\-_=+\[\]{}|;:,.<>?/\\`~"\']).*$'
         if not re.match(pattern, value):
-            raise serializers.ValidationError(
-                "Password must contain at least one uppercase letter, "
-                "one lowercase letter, one number, and one special character."
-            )
+            raise InvalidPassword()
         return value
 
     def validate(self, attrs):
         if attrs['password'] != attrs['confirm_pass']:
-            raise serializers.ValidationError({"confirm_pass": "Passwords do not match."})
+            raise PasswordMismatch()
         return attrs
     
-
-# class DeleteAccountSerializer(serializers.Serializer):
-#     password = serializers.CharField(write_only=True)
-
-#     def validate_password(self, value):
-#         user = self.context['request'].user
-#         if not user.check_password(value):
-#             raise serializers.ValidationError("Parola este incorectă.")
-#         return value
-
-class LoginSerializer(serializers.Serializer):
-    identifier = serializers.CharField(label="Email or Username")
-    password = serializers.CharField(write_only=True)
-    remember_me = serializers.BooleanField(default=False)
-
-    def validate(self, attrs):
-        identifier = attrs.get('identifier', '').strip()
-        password = attrs.get('password', '')
-        remember_me = attrs.get('remember_me', False)
-
-        if not identifier or not password:
-            raise serializers.ValidationError("All fields are required.")
-
-        # the login is based on email or username
-        # so an user can loggin with email or username
-        try:
-            user = User.objects.get(
-                Q(email__iexact=identifier) | Q(username__iexact=identifier)
-            )
-        except User.DoesNotExist:
-            raise serializers.ValidationError("Invalid credentials.")
-
-        # verifying the password
-        if not user.check_password(password):
-            raise serializers.ValidationError("Invalid credentials.")
-
-        # if the email is verified
-        if not user.is_active:
-            raise serializers.ValidationError("Account is not activated. Please verify your email.")
-
-        attrs['user'] = user
-        attrs['remember_me'] = remember_me
-        return attrs
-    
-class ForgotPasswordSerializer(serializers.Serializer):
-    # the logic here is that the user uses the email to connect to her/his account
-    email = serializers.CharField()
-    def validate_email(self, value):
-        value = value.strip().lower()
-        if '@' not in value or '.' not in value:
-            raise serializers.ValidationError("Enter a valid email address.")
-        return value
-
-class ResetPasswordSerializer(serializers.Serializer):
-    password = serializers.CharField(write_only=True)
-    confirm_pass = serializers.CharField(write_only=True)
-
-    def validate_password(self, value):
-        if not (8 <= len(value) <= 32):
-            raise serializers.ValidationError(
-                "Password must be between 8 and 32 characters."
-            )
-        pattern = r'^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[!@#$%^&*()\-_=+\[\]{}|;:,.<>?/\\`~"\']).*$'
-        if not re.match(pattern, value):
-            raise serializers.ValidationError(
-                "Password must contain at least one uppercase letter, "
-                "one lowercase letter, one number, and one special character."
-            )
-        return value
-
-    def validate(self, attrs):
-        if attrs['password'] != attrs['confirm_pass']:
-            raise serializers.ValidationError({"confirm_pass": "Passwords do not match."})
-        return attrs
-    
-
-# class DeleteAccountSerializer(serializers.Serializer):
-#     password = serializers.CharField(write_only=True)
-
-#     def validate_password(self, value):
-#         user = self.context['request'].user
-#         if not user.check_password(value):
-#             raise serializers.ValidationError("Parola este incorectă.")
-#         return value
