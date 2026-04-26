@@ -8,6 +8,8 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
+from users.exceptions import InvalidResetToken, InvalidToken, TokenExpired, TooManyAttempts, MissingField, InvalidVerificationRequest, ResetTokenAlreadyUsed, MagicLinkExpired, InvalidMagicLink
+from users.exceptions import AllFieldsRequired, MissingRefreshToken, NoVerificationFound
 from users.models import User, EmailVerification, PasswordReset
 from users.serializers import  RegisterSerializer, LoginSerializer, ForgotPasswordSerializer, ResetPasswordSerializer
 from users.utils import create_verification_and_send_email, format_block_message, send_forgot_password_email
@@ -53,18 +55,14 @@ def verify_email(request):
     # no spaces, email in lowercase , token in uppercase
 
     if not email or not token:
-        return Response(
-            {"error": "Email and token are required."},
-            status=status.HTTP_400_BAD_REQUEST)
+        raise MissingField(message="Email and token are required.")
     
 
     try:
         user = User.objects.get(email__iexact=email, is_active=False)
         # email__iexact=email is case INsensitive, that means that maria@gmail.com is the same with Maria@GmAil.com
     except User.DoesNotExist:
-        return Response(
-            {"error": "Invalid email or account already activated."},
-            status=status.HTTP_400_BAD_REQUEST)
+        raise InvalidVerificationRequest()
     # we try to find an INACTIVE user with this email (iexact - case insensitive)
     # if the user is active. we treat the same with "DON T EXIST!!!!"
 
@@ -72,10 +70,7 @@ def verify_email(request):
     try:
         verification = user.email_verification
     except EmailVerification.DoesNotExist:
-        return Response(
-            {"error": "No verification found. Please register again."},
-            status=status.HTTP_400_BAD_REQUEST,
-        )
+        raise NoVerificationFound()
 
 
     # if verification.is_blocked():
@@ -95,19 +90,11 @@ def verify_email(request):
     # and delete the blocked_until .
 
     if verification.is_blocked():
-        return Response(
-            {"error": format_block_message(verification.blocked_until)},
-            # import from utils the function that formats
-            #  the message with the remaining time
-            status=status.HTTP_429_TOO_MANY_REQUESTS,
-        )
+        raise TooManyAttempts(message=format_block_message(verification.blocked_until))
 
 
     if verification.is_token_expired():
-        return Response(
-            {"error": "Token expired. Please request a new one."},
-            status=status.HTTP_400_BAD_REQUEST,
-        )
+        raise TokenExpired()
 
 
     if not hmac.compare_digest(verification.token, token):
@@ -124,14 +111,10 @@ def verify_email(request):
         if verification.failed_attempts >= MAX_FAILED_ATTEMPTS:
             verification.blocked_until = (timezone.now() + timedelta(hours=BLOCK_DURATION_HOURS))
             verification.save(update_fields=['blocked_until'])
-            return Response(
-                {"error": format_block_message(verification.blocked_until)},
-                status=status.HTTP_429_TOO_MANY_REQUESTS)
+            raise TooManyAttempts(message=format_block_message(verification.blocked_until))
 
         remaining = MAX_FAILED_ATTEMPTS - verification.failed_attempts
-        return Response(
-            {"error": f"Invalid token. {remaining} attempts remaining."},
-            status=status.HTTP_400_BAD_REQUEST)
+        raise InvalidToken(message=f"Invalid token. {remaining} attempts remaining.")
 
     with transaction.atomic():
         user.is_active = True
@@ -149,10 +132,9 @@ def verify_email(request):
 def login(request):
 
     serializer = LoginSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
 
-    if not serializer.is_valid():
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
+    
     user = serializer.validated_data['user']
     remember_me = serializer.validated_data['remember_me']
 
@@ -194,21 +176,21 @@ def refresh_token(request):
     old_refresh_token = request.COOKIES.get('refresh_token')
 
     if not old_refresh_token:
-        return Response(
-            {"error": "Refresh token is required."},
-            status=status.HTTP_401_UNAUTHORIZED,
-        )
+        raise InvalidToken(message="Refresh token is required.")
+    # raise MissingRefreshToken()
 
     try:
         
         refresh = RefreshToken(old_refresh_token)
-
-        response = Response(
+    except Exception:
+        raise InvalidToken()
+    
+    response = Response(
             {"message": "Token refreshed."},
             status=status.HTTP_200_OK,
         )
 
-        response.set_cookie(
+    response.set_cookie(
             key = 'access_token',
             value = str(refresh.access_token),
             httponly = True,
@@ -217,13 +199,9 @@ def refresh_token(request):
             max_age = 15 * 60
         )
 
-        return response
+    return response
+      
 
-    except Exception:
-        return Response(
-            {"error": "Invalid or expired refresh token. Please log in again."},
-            status=status.HTTP_401_UNAUTHORIZED,
-        )
 # ------------------------ LOGOUT -----------------------------------
 
 @api_view(['POST'])
@@ -232,10 +210,8 @@ def logout(request):
     refresh_token = request.COOKIES.get('refresh_token')
 
     if not refresh_token:
-        return Response(
-            {"error": "Refresh token is required."},
-            status=status.HTTP_400_BAD_REQUEST,
-        )
+        raise MissingRefreshToken()
+    
     response = Response(
         {"message": "Logout successful."},
         status=status.HTTP_200_OK,
@@ -257,9 +233,7 @@ def logout(request):
 @permission_classes([AllowAny])
 def forgot_password(request):
     serializer = ForgotPasswordSerializer(data=request.data)
-
-    if not serializer.is_valid():
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    serializer.is_valid(raise_exception=True)
 
     email = serializer.validated_data['email']
 
@@ -285,20 +259,14 @@ def forgot_password(request):
 
     if reset.is_blocked():
         remaining = (reset.blocked_until - timezone.now()).seconds // 60
-        return Response(
-            {"error": f"Too many requests. Try again in {remaining} minutes."},
-            status=status.HTTP_429_TOO_MANY_REQUESTS,
-        )
+        raise TooManyAttempts(message=format_block_message(reset.blocked_until))
 
     reset.request_attempts += 1
 
     if reset.request_attempts >= MAX_FORGOT_ATTEMPTS:
         reset.blocked_until = timezone.now() + timedelta(minutes=FORGOT_BLOCK_MINUTES)
         reset.save(update_fields=['request_attempts', 'blocked_until'])
-        return Response(
-            {"error": "Too many requests. Try again in 1 hour."},
-            status=status.HTTP_429_TOO_MANY_REQUESTS,
-        )
+        raise TooManyAttempts(message="Too many attempts. Try again in 1 hour!")
 
     reset.token = uuid.uuid4()
     reset.expires_at = timezone.now() + timedelta(minutes=15)
@@ -320,31 +288,22 @@ def reset_password(request):
     token = request.data.get('token', '').strip()
 
     if not token:
-        return Response(
-            {"error": "Token is required."},
-            status=status.HTTP_400_BAD_REQUEST,
-        )
+        raise MissingField(message="Token is required.")
 
     # we will search the token in database and we set is_used is false
     # so it can be used 2 times
     try:
         reset = PasswordReset.objects.get(token=token, is_used=False)
     except PasswordReset.DoesNotExist:
-        return Response(
-            {"error": "Invalid or already used token."},
-            status=status.HTTP_400_BAD_REQUEST,
-        )
+        raise InvalidResetToken()
 
     if reset.is_expired():
-        return Response(
-            {"error": "Token expired. Please request a new one."},
-            status=status.HTTP_400_BAD_REQUEST,
-        )
+        raise TokenExpired()
 
     # we need to validate the new password!!!!!!
     serializer = ResetPasswordSerializer(data=request.data)
-    if not serializer.is_valid():
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    serializer.is_valid(raise_exception=True)
+
 
     # set_password is a good method that hashes the passwords
     user = reset.user
@@ -367,10 +326,8 @@ def resend_token(request):
     email = request.data.get('email', '').strip().lower()
 
     if not email:
-        return Response(
-            {"error": "Email is required."},
-            status=status.HTTP_400_BAD_REQUEST,
-        )
+        raise MissingField(message="Email is required.")
+
     generic_success_response = Response(
         {"message": "If this email exists, a new code has been sent."},
         status=status.HTTP_200_OK,
@@ -424,16 +381,15 @@ def login_with_link(request):
     token = request.GET.get('token', '').strip()
 
     if not token:
-        return Response({"error": "Token is required."}, status=status.HTTP_400_BAD_REQUEST)
+        raise MissingField(message="Token is required.")
 
     try:
         reset = PasswordReset.objects.get(token=token, is_used=False)
     except PasswordReset.DoesNotExist:
-        return Response({"error": "Invalid or already used link."}, status=status.HTTP_400_BAD_REQUEST)
+        raise InvalidMagicLink()
 
     if reset.is_expired():
-        return Response({"error": "Link expired. Please request a new one."}, status=status.HTTP_400_BAD_REQUEST)
-
+        raise MagicLinkExpired()
 
     reset.is_used = True
     reset.save(update_fields=['is_used'])
@@ -446,8 +402,21 @@ def login_with_link(request):
         {"message": "Login successful.", "user": {"username": user.username, "email": user.email}},
         status=status.HTTP_200_OK,
     )
-    response.set_cookie(key='access_token',  value=str(refresh.access_token), httponly=True, secure=False, samesite='Lax', max_age=15 * 60)
-    response.set_cookie(key='refresh_token', value=str(refresh),              httponly=True, secure=False, samesite='Lax', max_age=7 * 24 * 60 * 60)
+    response.set_cookie(
+        key='access_token',  
+        value=str(refresh.access_token), 
+        httponly=True, secure=False, 
+        samesite='Lax', 
+        max_age=15 * 60
+        )
+    response.set_cookie(
+        key='refresh_token', 
+        value=str(refresh), 
+        httponly=True, 
+        secure=False, 
+        samesite='Lax',
+        max_age=7 * 24 * 60 * 60
+        )
     return response
 
 
