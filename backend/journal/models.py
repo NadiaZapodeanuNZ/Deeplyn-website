@@ -24,7 +24,7 @@ class Note(models.Model):
     class EmotionsSource(models.TextChoices):
         NONE = 'none', 'None'
         MANUAL = 'manual', 'Manual'
-        TRANSFORMER = 'transformer', 'AI Transformer'
+        TRANSFORMER = 'transformer', 'Automatically'
         # first element is the value stored in the database, second element is the human readable name
 
 
@@ -73,7 +73,7 @@ class NoteEmotion(models.Model):
 
     class Source(models.TextChoices):
         MANUAL = 'manual', 'Manual'
-        TRANSFORMER = 'transformer', 'AI Transformer'
+        TRANSFORMER = 'transformer', 'Automatically'
        
 
     note = models.ForeignKey(Note, on_delete=models.CASCADE, related_name='note_emotions')

@@ -32,10 +32,25 @@ class User(AbstractUser):
         date_joined (DateTimeField): Data si ora la care utilizatorul si-a creat contul.
         last_login (DateTimeField): Data si ora la care utilizatorul s-a logat ultima data.
     """
+    class Role(models.TextChoices):
+        CLIENT = 'client','Client'
+        THERAPIST = 'therapist','Therapist'
+
+
     email = models.EmailField(max_length=256, unique=True, null=False)
     username = models.CharField(max_length=32, unique=True, null=False)
     is_active = models.BooleanField(default=False)
-    # AbstractUser help me to inherit some traits like:
+
+    role = models.CharField(
+        max_length=15,
+        choises=Role.choices,
+        default =Role.CLIENT
+    )
+
+    # encryption! 
+
+    encrypted_key = models.BinaryField()
+    # # AbstractUser help me to inherit some traits like:
 
     # username - CharField 
     # first_name - CharField (optional)
@@ -56,6 +71,13 @@ class User(AbstractUser):
     def __str__(self):
         return f"{self.username} ({self.email})"
 
+    @property
+    def is_client(self):
+        return self.role == self.Role.CLIENT
+    
+    @property
+    def is_therapist(self):
+            return self.role == self.Role.THERAPIST
 
 class EmailVerification(models.Model):
     """ Model (tabela) pentru verificarea emailului.
@@ -169,3 +191,4 @@ class PasswordReset(models.Model):
         if self.blocked_until is None:
             return False
         return timezone.now() < self.blocked_until
+    

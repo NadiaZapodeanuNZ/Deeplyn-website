@@ -1,4 +1,6 @@
+import os
 import re
+from config.base64 import Base64BinaryField
 from rest_framework import serializers
 from users.models import User 
 from django.db.models import Q
@@ -13,14 +15,12 @@ from users.exceptions import (
     InvalidUsername,
     AllFieldsRequired,
 )
+from django.db import transaction
 
-# class register
-# it provides us the usual validation that we need
 
 class RegisterSerializer(serializers.ModelSerializer):
     
     confirm_pass = serializers.CharField(write_only=True, label="Confirm Password")
-    
 
     class Meta:
         model  = User
@@ -54,7 +54,6 @@ class RegisterSerializer(serializers.ModelSerializer):
         return value
 
     def validate_password(self, value):
-  
         if not (8 <= len(value) <= 32):
                 raise InvalidPasswordLength()
 
@@ -65,12 +64,15 @@ class RegisterSerializer(serializers.ModelSerializer):
         return value
 
 
+    # the actual validator for all the register!!
     def validate(self, attrs):
         required = ['username', 'email', 'password', 'confirm_pass']
+        
+
         for field in required:
             if not attrs.get(field, '').strip():
                 raise AllFieldsRequired()
-
+            
         if attrs['password'] != attrs['confirm_pass']:
             raise PasswordMismatch()
 
@@ -118,10 +120,11 @@ class RegisterSerializer(serializers.ModelSerializer):
         if existing_user is not None:
             existing_user.username = validated_data['username']
             existing_user.set_password(validated_data['password'])
-            existing_user.save(update_fields=['username', 'password'])
+            existing_user.encryption_key = os.random(32)
+            existing_user.save(update_fields=['username', 'password','encryption_key'])
+
             if hasattr(existing_user, 'email_verification'):
                 existing_user.email_verification.delete()
-
             return existing_user
 
         user = User.objects.create_user(
@@ -129,8 +132,8 @@ class RegisterSerializer(serializers.ModelSerializer):
             email=validated_data['email'],
             password=validated_data['password'],
             is_active=False,
+            encryption_key = os.random(32)
         )
-
         return user
 
 
@@ -198,4 +201,66 @@ class ResetPasswordSerializer(serializers.Serializer):
         if attrs['password'] != attrs['confirm_pass']:
             raise PasswordMismatch()
         return attrs
+
+
+class UserSerializer(serializers.ModelSerializer):
+    """
+    Read-only serializer -- GET /users/me/ to return the user's profile.
+    """
+    class Meta:
+        model = User
+        fields = [
+            'id',
+            'username',
+            'email',
+            'role', 
+            'is_active',
+            'date_joined',
+        ]
+        read_only_fields = fields
+
+
+# Change password --- a new method so that when the user
+# request to change it --> it will do this
+class ChangePasswordSerializer(serializers.Serializer):
     
+    # POST /users/change-password/
+    
+    old_password = serializers.CharField(write_only=True)
+    new_password = serializers.CharField(write_only=True)
+    confirm_new_password = serializers.CharField(write_only=True)
+
+    def validate_new_password(self, value):
+        if not (8 <= len(value) <= 32):
+            raise InvalidPasswordLength()
+        pattern = r'^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[!@#$%^&*()\-_=+\[\]{}|;:,.<>?/\\`~"\']).*$'
+        if not re.match(pattern, value):
+            raise InvalidPassword()
+        return value
+
+    def validate(self, attrs):
+        user = self.context['request'].user
+
+        # Verify old password is correct before allowing any change
+        if not user.check_password(attrs['old_password']):
+            raise InvalidCredentials()
+
+        # New password must be different from old
+        if attrs['old_password'] == attrs['new_password']:
+            raise serializers.ValidationError(
+                "New password must be different from the old password."
+            )
+
+        if attrs['new_password'] != attrs['confirm_new_password']:
+            raise PasswordMismatch()
+
+        return attrs
+
+    def save(self):
+        user = self.context['request'].user
+        data = self.validated_data
+
+        with transaction.atomic():
+            user.set_password(data['new_password'])
+            user.save(update_fields=['password'])
+        return user

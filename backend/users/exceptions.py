@@ -1,20 +1,6 @@
 
-from rest_framework.exceptions import APIException
+from config.exceptions import AppException 
 from rest_framework import status
-
-
-class AppException(APIException):
-
-    status_code = status.HTTP_400_BAD_REQUEST
-    default_detail = "An error occurred."
-    default_code = "error"
-
-    def __init__(self, message=None, code=None, details=None):
-        self.message = message or self.default_detail
-        self.code = code or self.default_code
-        self.details = details or {}
-        super().__init__(detail=self.message, code=self.code)
-
 
 # ----------Exceptions for USER - REGISTER, LOGIN---------
 
@@ -23,6 +9,10 @@ class InvalidCredentials(AppException):
     default_detail = "Invalid credentials. Try again!"
     default_code = "invalid_credentials"
 
+class InvalidLength(AppException):
+    status_code = status.HTTP_411_LENGTH_REQUIRED
+    default_detail = "Invalid length"
+    default_code = "invalid_length"
 
 class AccountNotActivated(AppException):
     status_code = status.HTTP_403_FORBIDDEN
@@ -130,3 +120,8 @@ class MissingRefreshToken(AppException):
     status_code = status.HTTP_401_UNAUTHORIZED
     default_detail = "Refresh token is required."
     default_code = "missing_refresh_token"
+
+class MissingE2EFields(AppException):
+    status_code = status.HTTP_400_BAD_REQUEST
+    default_detail = "E2E encryption fields are missing. This is a frontend error."
+    default_code = "missing_e2e_fields"
