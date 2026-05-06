@@ -9,9 +9,11 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 from users.exceptions import InvalidResetToken, InvalidToken, TokenExpired, TooManyAttempts, MissingField, InvalidVerificationRequest, ResetTokenAlreadyUsed, MagicLinkExpired, InvalidMagicLink
-from users.exceptions import AllFieldsRequired, MissingRefreshToken, NoVerificationFound
+from users.exceptions import(
+    AllFieldsRequired, MissingRefreshToken, 
+    NoVerificationFound)
 from users.models import User, EmailVerification, PasswordReset
-from users.serializers import  RegisterSerializer, LoginSerializer, ForgotPasswordSerializer, ResetPasswordSerializer
+from users.serializers import  RegisterSerializer, LoginSerializer, ForgotPasswordSerializer, ResetPasswordSerializer, TherapistRegisterSerializer
 from users.utils import create_verification_and_send_email, format_block_message, send_forgot_password_email
 from django.db.models import F
 from django.db import transaction
@@ -27,21 +29,37 @@ MAX_RESEND_ATTEMPTS  = 5
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
-def register(request):
+def register_client(request):
     serializer = RegisterSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
-
     user = serializer.save()
     create_verification_and_send_email(user)
 
     return Response(
         {
             "message": "Account created. Please check your email to activate your account.",
-            "email": user.email,
+            "email": user.email
         },
-        status=status.HTTP_201_CREATED,
+        status=status.HTTP_201_CREATED
     )
 
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def register_therapist(request):
+    # it s the same as  client but the serializer will evaluate 
+    # and it will decide that the response is in PENDING!!
+    serializer = TherapistRegisterSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    user = serializer.save()
+    create_verification_and_send_email(user)
+    return Response(
+        {
+            "message": "Account created. Please check your email to activate your account.",
+            "email": user.email
+        },
+        status=status.HTTP_201_CREATED
+    )
+    
 # ----------------------------EMAIL VERIFY--------------------------------
 
 @api_view(['POST'])
@@ -53,7 +71,6 @@ def verify_email(request):
     #actually, '' in Python is considerated FALSE
     # so - i normalize the input :
     # no spaces, email in lowercase , token in uppercase
-
     if not email or not token:
         raise MissingField(message="Email and token are required.")
     
@@ -63,24 +80,13 @@ def verify_email(request):
         # email__iexact=email is case INsensitive, that means that maria@gmail.com is the same with Maria@GmAil.com
     except User.DoesNotExist:
         raise InvalidVerificationRequest()
-    # we try to find an INACTIVE user with this email (iexact - case insensitive)
-    # if the user is active. we treat the same with "DON T EXIST!!!!"
-
+    # server tries to find an INACTIVE user with this email (iexact - case insensitive)
+    # if the user is active. the server will treat the same with "DON T EXIST!!!!"
 
     try:
         verification = user.email_verification
     except EmailVerification.DoesNotExist:
         raise NoVerificationFound()
-
-
-    # if verification.is_blocked():
-    #     remaining = int((verification.blocked_until - timezone.now()).total_seconds() // 3600)
-    #     return Response(
-    #         {"error": f"Too many attempts. Try again in {remaining} hours."},
-    #         status=status.HTTP_429_TOO_MANY_REQUESTS,
-    #     )
-    #this case is a bug - because when the user is unblocked, the counter didn t reset and it s not ok
-
 
     if verification.blocked_until and verification.blocked_until <= timezone.now():
         verification.failed_attempts = 0
@@ -98,10 +104,7 @@ def verify_email(request):
 
 
     if not hmac.compare_digest(verification.token, token):
-        # Wrong token — we increment the counter ATOMICALLY using F().
-        # F('failed_attempts') + 1 translates into an SQL UPDATE that
-        # performs the increment directly on the server, 
-        
+
         verification.failed_attempts = F('failed_attempts') + 1
         verification.save(update_fields=['failed_attempts'])
 
@@ -123,7 +126,7 @@ def verify_email(request):
 
     return Response(
         {"message": "Account activated successfully. You can now log in."},
-        status=status.HTTP_200_OK,
+        status=status.HTTP_200_OK
     )
 
 # -------------------------LOGIN-----------------------------------------
@@ -152,23 +155,14 @@ def login(request):
         },
         status=status.HTTP_200_OK,
     )
-    response.set_cookie(
-        key = 'access_token',
-        value = str(refresh.access_token),
-        httponly = True,
-        secure = False,  # False in development, True in production
-        samesite = 'Lax',
-        max_age  = 15 * 60
-    )
-    response.set_cookie(
-        key = 'refresh_token',
-        value = str(refresh),
-        httponly = True,
-        secure = False,  # False in development, True in production
-        samesite = 'Lax',
-        max_age = 30 * 24 * 60 * 60 if remember_me else 7 * 24 * 60 * 60
-    )
+    response.set_cookie(key = 'access_token', value = str(refresh.access_token), httponly = True,
+                        secure = False, samesite = 'Lax', max_age  = 15 * 60)
+    response.set_cookie(key = 'refresh_token',value = str(refresh),httponly = True,
+                        secure = False, samesite = 'Lax',
+                        max_age = 30 * 24 * 60 * 60 if remember_me else 7 * 24 * 60 * 60)
     return response
+
+
 # --------------------------REFRESH-TOKENNNN----------------------
 @api_view(['POST'])
 @permission_classes([AllowAny])
@@ -177,8 +171,6 @@ def refresh_token(request):
 
     if not old_refresh_token:
         raise InvalidToken(message="Refresh token is required.")
-    # raise MissingRefreshToken()
-
     try:
         
         refresh = RefreshToken(old_refresh_token)
@@ -190,14 +182,8 @@ def refresh_token(request):
             status=status.HTTP_200_OK,
         )
 
-    response.set_cookie(
-            key = 'access_token',
-            value = str(refresh.access_token),
-            httponly = True,
-            secure = False,  # True in productie
-            samesite = 'Lax',
-            max_age = 15 * 60
-        )
+    response.set_cookie(key = 'access_token', value = str(refresh.access_token), httponly = True,
+                        secure = False, samesite = 'Lax', max_age = 15 * 60)
 
     return response
       
@@ -242,7 +228,7 @@ def forgot_password(request):
     except User.DoesNotExist:
         return Response(
             {"message": "If this email exists, a reset link has been sent."},
-            status=status.HTTP_200_OK,
+            status=status.HTTP_200_OK
         )
 
     reset, _ = PasswordReset.objects.get_or_create(
@@ -253,7 +239,7 @@ def forgot_password(request):
     
     if reset.blocked_until and timezone.now() > reset.blocked_until:
         reset.request_attempts = 0
-        reset.blocked_until    = None
+        reset.blocked_until = None
         reset.save(update_fields=['request_attempts', 'blocked_until'])
 
 
@@ -277,7 +263,7 @@ def forgot_password(request):
 
     return Response(
         {"message": "If this email exists, a reset link has been sent."},
-        status=status.HTTP_200_OK,
+        status=status.HTTP_200_OK
     )
 
 # ------------------------------------RESET PASSWORD-------------------------
@@ -330,7 +316,7 @@ def resend_token(request):
 
     generic_success_response = Response(
         {"message": "If this email exists, a new code has been sent."},
-        status=status.HTTP_200_OK,
+        status=status.HTTP_200_OK
     )
 
     try:
@@ -361,7 +347,7 @@ def resend_token(request):
         verification.save(update_fields=['resend_attempts', 'blocked_until'])
         return Response(
             {"error": "Too many attempts. Your account is temporarily blocked for 24 hours."},
-            status=status.HTTP_429_TOO_MANY_REQUESTS,
+            status=status.HTTP_429_TOO_MANY_REQUESTS
         )
 
     verification.save(update_fields=['resend_attempts'])
@@ -372,7 +358,7 @@ def resend_token(request):
             "message": "A new verification code has been sent to your email.",
             "attempts_remaining": MAX_RESEND_ATTEMPTS - verification.resend_attempts,
         },
-        status=status.HTTP_200_OK,
+        status=status.HTTP_200_OK
     )
 #---------------------------LOGIN WITH LINK-------------------------
 @api_view(['GET'])
@@ -400,23 +386,12 @@ def login_with_link(request):
 
     response = Response(
         {"message": "Login successful.", "user": {"username": user.username, "email": user.email}},
-        status=status.HTTP_200_OK,
+        status=status.HTTP_200_OK
     )
-    response.set_cookie(
-        key='access_token',  
-        value=str(refresh.access_token), 
-        httponly=True, secure=False, 
-        samesite='Lax', 
-        max_age=15 * 60
-        )
-    response.set_cookie(
-        key='refresh_token', 
-        value=str(refresh), 
-        httponly=True, 
-        secure=False, 
-        samesite='Lax',
-        max_age=7 * 24 * 60 * 60
-        )
+    response.set_cookie(key='access_token', value=str(refresh.access_token), httponly=True, secure=False, 
+                        samesite='Lax', max_age=15 * 60)
+    response.set_cookie(key='refresh_token', value=str(refresh), httponly=True, 
+                        secure=False, samesite='Lax',max_age=7 * 24 * 60 * 60)
     return response
 
 

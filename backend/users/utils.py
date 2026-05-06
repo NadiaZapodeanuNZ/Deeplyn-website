@@ -7,6 +7,7 @@ from django.core.mail import EmailMessage
 from django.core.mail import EmailMultiAlternatives
 from decouple import config
 from django.template.loader import render_to_string
+import datetime
 
 #--------------BLOCK MESSAGE - USER BLOCKED - TOO MANY ATTEMPTS-----------------
 
@@ -37,21 +38,17 @@ def create_verification_and_send_email(user):
 
 
 def generate_and_store_token(user):
-    """"""
     verification, created = EmailVerification.objects.get_or_create(
         user=user,
         defaults={
             'token': '',
-            'expires_at': timezone.now(),
-        }
+            'expires_at': timezone.now()}
     )
     return verification.generate_new_token()
 
 
 def send_verification_email(user, token):
     subject = "Activate your account"
-
-    # Plain text - fallback pentru clienti fara HTML
     text_content = (
         f"Hello, {user.username}!\n\n"
         f"To activate your account, use the verification code below:\n\n"
@@ -63,28 +60,19 @@ def send_verification_email(user, token):
         f"Deeplyn"
     )
 
-    # HTML - versiunea frumoasa
-    html_content = render_to_string("emails/verification.html", {
-        "username": user.username,
-        "token": token,
-    })
+    html_content = render_to_string("emails/verification.html", {"username": user.username,"token": token,})
 
     email = EmailMultiAlternatives(
         subject=subject,
-        body=text_content,              # plain text obligatoriu
+        body=text_content, 
         from_email=config('EMAIL_HOST_USER'),
-        to=[user.email],
-    )
-    email.attach_alternative(html_content, "text/html")  # adaugi HTML peste
+        to=[user.email])
+    email.attach_alternative(html_content, "text/html")
     email.send()
     
 def send_forgot_password_email(user, token):
-    # magic_link = f"http://localhost:5173/login/with-link?token={token}"
-    # reset_link = f"http://localhost:5173/reset-password?token={token}"
-    
     magic_link = f"http://localhost:8000/api/users/login/with-link?token={token}"
     reset_link = f"http://localhost:8000/api/users/reset-password?token={token}"
-
 
     subject = "Reset your Deeplyn password"
 
@@ -95,25 +83,31 @@ def send_forgot_password_email(user, token):
         f"Both links expire in 15 minutes.\n\n"
         f"Best regards,\nDeeplyn"
     )
-
     html_content = f"""
-<html>
-<body>
-    <p>Hello, <strong>{user.username}</strong>!</p>
-    <p>We received a request to access your Deeplyn account.</p>
-    <p><a href="{magic_link}">Login directly (no password needed)</a></p>
-    <p><a href="{reset_link}">Reset your password instead</a></p>
-    <p>Both links expire in 15 minutes.</p>
-    <p>Best regards,<br>Deeplyn</p>
-</body>
-</html>
-"""
-
+                    <html>
+                    <body>
+                        <p>Hello, <strong>{user.username}</strong>!</p>
+                        <p>We received a request to access your Deeplyn account.</p>
+                        <p><a href="{magic_link}">Login directly (no password needed)</a></p>
+                        <p><a href="{reset_link}">Reset your password instead</a></p>
+                        <p>Both links expire in 15 minutes.</p>
+                        <p>Best regards,<br>Deeplyn</p>
+                    </body>
+                    </html>
+                    """
+    
     email = EmailMultiAlternatives(
         subject = subject,
         body  = text_content,
         from_email = config('EMAIL_HOST_USER'),
-        to  = [user.email],
-    )
+        to  = [user.email])
     email.attach_alternative(html_content, "text/html")
     email.send(fail_silently=False)
+
+def therapist_documents_path(instance, filename):
+
+    # it s a callable function for upload_to!!
+    # instance -> the TherapistProfile object
+    first_name = instance.user.first_name
+    last_name = instance.user.last_name
+    return f'therapist_documents/{datetime.now().strftime("%Y/%m")}/{first_name}_{last_name}/{filename}'

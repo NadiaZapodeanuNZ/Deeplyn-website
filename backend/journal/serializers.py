@@ -1,4 +1,3 @@
-from config.base64 import Base64BinaryField
 from django.db import transaction
 from rest_framework import serializers
 from .models import Journal, Note, Emotion, NoteEmotion

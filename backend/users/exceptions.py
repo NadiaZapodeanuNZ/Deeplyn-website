@@ -25,7 +25,6 @@ class EmailOrUsernameAlreadyExists(AppException):
     default_detail = "An account with this email or username already exists."
     default_code = "email_or_username_already_exists"
 
-
 class PasswordMismatch(AppException):
     status_code = status.HTTP_400_BAD_REQUEST
     default_detail = "The passwords you entered do not match."
@@ -55,6 +54,18 @@ class AllFieldsRequired(AppException):
     status_code = status.HTTP_400_BAD_REQUEST
     default_detail = "All fields are required."
     default_code = "all_fields_required"
+
+class InvalidInput(AppException):
+    status_code = status.HTTP_400_BAD_REQUEST
+    default_detail = "Invalid Input"
+    default_code = "invalid_input"
+
+class NewPasswordSameAsOld(AppException):
+    status_code = status.HTTP_400_BAD_REQUEST
+    default_detail = "New password must be different from the old password."
+    default_code = "new_pass_same_old"
+
+
     
 # ------------------Exceptions for email verification---------
 
@@ -120,8 +131,3 @@ class MissingRefreshToken(AppException):
     status_code = status.HTTP_401_UNAUTHORIZED
     default_detail = "Refresh token is required."
     default_code = "missing_refresh_token"
-
-class MissingE2EFields(AppException):
-    status_code = status.HTTP_400_BAD_REQUEST
-    default_detail = "E2E encryption fields are missing. This is a frontend error."
-    default_code = "missing_e2e_fields"

@@ -31,9 +31,8 @@ class Note(models.Model):
     journal = models.ForeignKey(Journal,on_delete=models.CASCADE,related_name='notes')
     # crypted fields
     title_encrypted = models.BinaryField()
-    title_iv = models.BinaryField(max_length=12)
     content_encrypted = models.BinaryField()
-    content_iv = models.BinaryField(max_length=12)
+
     # crypted because i want to provide security/confidentiality
     # for the user's notes, so even if someone gets access to the database,
     # they won't be able to read the notes without the encryption key
@@ -42,7 +41,7 @@ class Note(models.Model):
     # plaintext fields
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    is_favorite = models.BooleanField(default=False) 
+    is_favorite = models.BooleanField(default=False)
     # a note can be favourite!
     emotions_source = models.CharField(max_length=15,choices=EmotionsSource.choices,default=EmotionsSource.NONE)
 
