@@ -24,14 +24,12 @@ export const AuthProvider = ({ children }) => {
   }, [])
 
 
-  const login = async (identifier, password, rememberMe) => {
-    await authApi.login(identifier, password, rememberMe)
-
-    const userData = await authApi.getCurrentUser()
-    setUser(userData)
-    return userData
-  }
-
+const login = async (form) => {
+  await authApi.login(form) 
+  const userData = await authApi.getCurrentUser()
+  setUser(userData)
+  return userData
+ }
   const logout = async () => {
     await authApi.logout()
     setUser(null)

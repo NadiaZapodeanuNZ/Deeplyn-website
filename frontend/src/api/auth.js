@@ -1,64 +1,39 @@
+import api from './axios';
 
+export const registerClient = async (formData) => {
+    const response = await api.post('/users/register/client/', formData);
+    return response.data};
 
-import apiClient from './client'
+export const registerTherapist = async (formData) => {
+    const response = await api.post('/users/register/therapist/', formData);
+    return response.data};
 
-//---------------LOGIN-------------------------------------------------
+export const verifyEmail = async ({email, token}) => {
+    const response = await api.post('/users/verify-email/', { email, token });
+    return response.data;
+};
 
-export const login = async (identifier, password, rememberMe = false) => {
-  const response = await apiClient.post('/login/', {
-    identifier,  
-    password,
-    remember_me: rememberMe,
-  })
-  return response.data
-}
-// -------------LOGOUT------------------------------------------------
+export const resendToken = async ({email}) => {
+    const response = await api.post('/users/resend-token/', { email });
+    return response.data;
+};
 
-export const logout = async () => {
-  try {
-    await apiClient.post('/logout/')
-  } catch (error) {
+export const login = async (form) => {
+    const response = await api.post('/users/login/', form);
+    return response.data;
+};
 
-    console.warn('Logout request failed, but proceeding with client-side logout:', error)
-  }
-  window.location.href = '/login'
-}
+export const forgotPassword = async ({email}) => {
+    const response = await api.post('/users/forgot-password/', {email});
+    return response.data;
+};
 
-//-------------REGISTER------------------------------------------------
-
-export const registerUser = async (userData) => {
-  const response = await apiClient.post('/register/', userData)
-  return response.data
-}
-// -----------VERIFY-EMAIL------------------------------------------------
-export const verifyEmail = async (email, token) => {
-  const response = await apiClient.post('/verify-email/', { email, token })
-  return response.data
+export const resetPassword = async () => {
+    const response = await api.get('/users/reset-password/');
+    return response.data;
 }
 
-//------------RESEND-VERIFICATION-TOKEN------------------------------
-export const resendToken = async (email) => {
-  const response = await apiClient.post('/resend-token/', { email })
-  return response.data
-}
-
-//-----------------FORGOT-PASSWORD----------------------------------------------
-export const forgotPassword = async (email) => {
-  const response = await apiClient.post('/forgot-password/', { email })
-  return response.data
-}
-
-//-----------------RESET-PASSWORD------------------------------------
-export const resetPassword = async (token, password, confirmPass) => {
-  const response = await apiClient.post('/reset-password/', {
-    token,
-    password,
-    confirm_pass: confirmPass,
-  })
-  return response.data
-}
-//-----------------GET-CURRENT-USER------------------------------------
 export const getCurrentUser = async () => {
-  const response = await apiClient.get('/me/')
-  return response.data
-}
+    const response = await api.get('/users/me/');
+    return response.data;
+};
