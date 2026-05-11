@@ -65,7 +65,15 @@ class NewPasswordSameAsOld(AppException):
     default_detail = "New password must be different from the old password."
     default_code = "new_pass_same_old"
 
+class TherapistPending(AppException):
+    status_code = status.HTTP_403_FORBIDDEN
+    default_detail = "Your account is under review. We'll notify you once it's approved."
+    default_code = "therapist_pending"
 
+class TherapistRejected(AppException):
+    status_code = status.HTTP_403_FORBIDDEN
+    default_detail = "Your therapist application has been rejected."
+    default_code = "therapist_rejected"
     
 # ------------------Exceptions for email verification---------
 

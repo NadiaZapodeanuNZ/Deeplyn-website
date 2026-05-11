@@ -147,15 +147,18 @@ CORS_ALLOWED_ORIGINS = [
 # sending cookies from backend to frontend
 # for example, when using JWT authentication, the token can be stored in a cookie and sent to the frontend
 CORS_ALLOW_CREDENTIALS = True
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+]
 
 REST_FRAMEWORK = {
-    # all endpoints will use JWT authentication by default
+    
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
         'users.authentication.CookieJWTAuthentication',
     ),
-    # by default, all endpoints will require authentication, but we can override this in specific views if needed
-    # for example, we can allow unauthenticated access to the registration and login endpoints
+
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticated',
     ),
@@ -181,8 +184,8 @@ SIMPLE_JWT = {
 
 SESSION_COOKIE_SECURE = False    # True in production (HTTPS only)
 SESSION_COOKIE_HTTPONLY = True
-CSRF_COOKIE_SECURE = False       # True in production (HTTPS only)
-CSRF_COOKIE_HTTPONLY = False      # React needs to read CSRF token
+CSRF_COOKIE_SECURE = True      # True in production (HTTPS only)
+CSRF_COOKIE_HTTPONLY = True     # React needs to read CSRF token
  
 
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'

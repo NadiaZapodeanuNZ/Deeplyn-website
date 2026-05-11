@@ -233,8 +233,7 @@ def forgot_password(request):
 
     reset, _ = PasswordReset.objects.get_or_create(
         user=user,
-        defaults={'expires_at': timezone.now()}
-    )
+        defaults={'expires_at': timezone.now()})
 
     
     if reset.blocked_until and timezone.now() > reset.blocked_until:
@@ -399,10 +398,15 @@ def login_with_link(request):
 @permission_classes([IsAuthenticated])
 def me(request):
     user = request.user
-    return Response({
+    data = {
         "id": user.id,
         "username": user.username,
         "email": user.email,
+        "role": user.role,
         "is_active": user.is_active,
-        "date_joined": user.date_joined,
-    }, status=status.HTTP_200_OK)
+        "date_joined": user.date_joined}
+    
+    if user.is_therapist and hasattr(user, 'therapist'):
+        data["therapist_status"] = user.therapist.request_status
+
+    return Response(data, status=status.HTTP_200_OK)

@@ -12,12 +12,7 @@ import datetime
 #--------------BLOCK MESSAGE - USER BLOCKED - TOO MANY ATTEMPTS-----------------
 
 def format_block_message(blocked_until):
-#  this message is for the user when he is blocked for 
-#  too many login attempts. 
-#  we calculate the remaining time until the block 
-#  is lifted and we return a message 
-#  with the remaining time in minutes or hours.
-    
+
     delta = blocked_until - timezone.now()
     total_minutes = max(0, int(delta.total_seconds() // 60))
 
@@ -71,8 +66,8 @@ def send_verification_email(user, token):
     email.send()
     
 def send_forgot_password_email(user, token):
-    magic_link = f"http://localhost:8000/api/users/login/with-link?token={token}"
-    reset_link = f"http://localhost:8000/api/users/reset-password?token={token}"
+    magic_link = f"http://localhost:5173/users/login/with-link?token={token}"
+    reset_link = f"http://localhost:5173/users/reset-password?token={token}"
 
     subject = "Reset your Deeplyn password"
 
@@ -111,3 +106,89 @@ def therapist_documents_path(instance, filename):
     first_name = instance.user.first_name
     last_name = instance.user.last_name
     return f'therapist_documents/{datetime.now().strftime("%Y/%m")}/{first_name}_{last_name}/{filename}'
+
+def send_therapist_approved_email(user):
+    subject = "Your Deeplyn therapist application has been approved!"
+
+    text_content = (
+        f"Hello, {user.first_name}!\n\n"
+        f"Great news — your application to join Deeplyn as a therapist "
+        f"has been reviewed and approved.\n\n"
+        f"You can now log in and set up your therapist profile:\n"
+        f"http://localhost:5173/login\n\n"
+        f"Welcome to the Deeplyn community!\n\n"
+        f"Best regards,\n"
+        f"The Deeplyn Team"
+    )
+
+    html_content = f"""
+<html>
+<body style="font-family: Arial, sans-serif; color: #333;">
+    <h2 style="color: #6B21A8;">Welcome to Deeplyn, {user.first_name}! 🎉</h2>
+    <p>Your application to join Deeplyn as a licensed therapist has been 
+    <strong style="color: green;">approved</strong>.</p>
+    <p>You can now log in and start setting up your profile, 
+    adding your specializations, and accepting clients.</p>
+    <p>
+        <a href="http://localhost:5173/login" 
+           style="background-color: #6B21A8; color: white; padding: 10px 20px; 
+                  border-radius: 6px; text-decoration: none;">
+            Log in to Deeplyn
+        </a>
+    </p>
+    <br>
+    <p>Best regards,<br><strong>The Deeplyn Team</strong></p>
+</body>
+</html>
+"""
+
+    email = EmailMultiAlternatives(
+        subject=subject,
+        body=text_content,
+        from_email=config('EMAIL_HOST_USER'),
+        to=[user.email],
+    )
+    email.attach_alternative(html_content, "text/html")
+    email.send(fail_silently=False)
+
+
+def send_therapist_rejected_email(user):
+    subject = "Update on your Deeplyn therapist application"
+
+    text_content = (
+        f"Hello, {user.first_name},\n\n"
+        f"Thank you for your interest in joining Deeplyn as a therapist.\n\n"
+        f"After carefully reviewing your application and documents, "
+        f"we were unfortunately unable to approve your request at this time.\n\n"
+        f"This may be due to incomplete documentation or information that "
+        f"could not be verified. You are welcome to submit a new application "
+        f"with updated documents.\n\n"
+        f"If you have any questions, please contact us at nzapodeanu@gmail.com\n\n"
+        f"Best regards,\n"
+        f"Deeplyn "
+    )
+
+    html_content = f"""
+<html>
+<body style="font-family: Arial, sans-serif; color: #333;">
+    <h2 style="color: #6B21A8;">An update on your application</h2>
+    <p>Hello, <strong>{user.first_name}</strong>,</p>
+    <p>Thank you for your interest in joining Deeplyn as a therapist. 
+    After carefully reviewing your application and submitted documents, 
+    we were unfortunately <strong style="color: #dc2626;">unable to approve</strong> 
+    your request at this time.</p>
+    <p>This may be due to incomplete documentation or information that 
+    could not be verified. You are welcome to 
+    <a href="http://localhost:5173/register/therapist">submit a new application</a> 
+    with updated documents.</p>
+    <p>If you have questions or need clarification, feel free to reach us at 
+    <a href="mailto:nzapodeanu@gmai.com">nzapodeanu@gmai.com</a>.</p>
+    <br>
+    <p>Best regards,<br><strong>Deeplyn</strong></p>
+</body>
+</html>
+"""
+
+    email = EmailMultiAlternatives(subject=subject,body=text_content,from_email=config('EMAIL_HOST_USER'),to=[user.email])
+    email.attach_alternative(html_content, "text/html")
+    email.send(fail_silently=False)

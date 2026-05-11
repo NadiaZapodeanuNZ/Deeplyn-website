@@ -5,16 +5,17 @@ from users.models import User, TherapistProfile
 from django.db.models import Q
 from django.db import transaction
 from users.exceptions import (EmailOrUsernameAlreadyExists, InvalidCredentials, AccountNotActivated, PasswordMismatch,
-InvalidEmail, InvalidPassword, InvalidPasswordLength, InvalidUsername, AllFieldsRequired, InvalidLength,InvalidInput, NewPasswordSameAsOld,)
+InvalidEmail, InvalidPassword, InvalidPasswordLength, InvalidUsername, AllFieldsRequired, InvalidLength,InvalidInput, NewPasswordSameAsOld,
+TherapistPending , TherapistRejected)
 ALLOWED_SPECIALIZATIONS = {
   "ADHD","Addiction", "Anxiety",
-  "Bipolar Disorder","Depression",
-  "Eating Disorders", "Grief & Loss",
-  "Personality Disorders", "PTSD & Trauma",
-  "Stress", "Suicide & Self-Harm",
+  "Career","child_adolescent","Depression",
+  "eating_disorders", "Grief",
+  "personality_disorders", "PTSD","Trauma",
+  "OCD", "Relationships",
+  "Stress", "Suicide",
   "Treatment" 
 }
-
 
 # -------------Register - as a CLIENT------------------------
 
@@ -39,8 +40,7 @@ class RegisterSerializer(serializers.ModelSerializer):
         email = value.strip().lower()
         parts = email.split('@')
         domain = parts[1] if len(parts) == 2 else ''
-        if len(parts) != 2 or not parts[0] or '.' not in domain \
-            or domain.startswith('.') or domain.endswith('.'):
+        if len(parts) != 2 or not parts[0] or '.' not in domain or domain.startswith('.') or domain.endswith('.'):
             raise InvalidEmail()
         return email
 
@@ -175,7 +175,7 @@ class TherapistRegisterSerializer(RegisterSerializer):
             'where_to_check_license',
             'documents_pdf',
             'bio',
-            'specializations',
+            'specializations'
         ]
     
     def validate_license_code(self, value):
@@ -234,7 +234,7 @@ class TherapistRegisterSerializer(RegisterSerializer):
                 message=f"Invalid specializations: {', '.join(sorted(invalid))}.",
                 details={
                     "field": "specializations",
-                    "allowed": sorted(ALLOWED_SPECIALIZATIONS),
+                    "allowed": sorted(ALLOWED_SPECIALIZATIONS)
                 }
             )
         
@@ -251,7 +251,7 @@ class TherapistRegisterSerializer(RegisterSerializer):
             'first_name', 'last_name', 'username', 'email',
             'password', 'confirm_pass', 'country',
             'license_code', 'where_to_check_license',
-            'documents_pdf', 'specializations',
+            'documents_pdf', 'specializations'
         ]
         
         for field in required:
@@ -276,7 +276,7 @@ class TherapistRegisterSerializer(RegisterSerializer):
             'where_to_check_license': validated_data.pop('where_to_check_license'),
             'documents_pdf': validated_data.pop('documents_pdf'),
             'bio': validated_data.pop('bio', ''),
-            'specializations': validated_data.pop('specializations'),
+            'specializations': validated_data.pop('specializations')
         }
         
         validated_data.pop('confirm_pass')
@@ -310,7 +310,7 @@ class TherapistRegisterSerializer(RegisterSerializer):
                 last_name=validated_data['last_name'],
                 country=validated_data['country'],
                 role=User.Role.THERAPIST,
-                is_active=False,
+                is_active=False
             )
 
         TherapistProfile.objects.create(
@@ -321,7 +321,7 @@ class TherapistRegisterSerializer(RegisterSerializer):
             bio=therapist_data['bio'],
             specializations=therapist_data['specializations'],
             request_status=TherapistProfile.RequestStatus.PENDING,
-            is_accepting_clients=False,
+            is_accepting_clients=False
         )
         return user
 
@@ -357,8 +357,15 @@ class LoginSerializer(serializers.Serializer):
         if not user.is_active:
             raise AccountNotActivated(details={"email": user.email})
 
-        attrs['user'] = user
-        attrs['remember_me'] = remember_me
+
+        if user.is_therapist:
+            if hasattr(user, 'therapist'):
+                if user.therapist.request_status == 'pending':
+                    raise TherapistPending()
+                if user.therapist.request_status == 'rejected':
+                    raise TherapistRejected()        
+            attrs['user'] = user
+            attrs['remember_me'] = remember_me
         return attrs
 
 #--------------Forgot Password-------------------

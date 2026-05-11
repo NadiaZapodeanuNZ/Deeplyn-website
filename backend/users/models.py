@@ -46,6 +46,24 @@ class TherapistProfile(models.Model):
         APPROVED = 'approved', 'Approved'
         REJECTED = 'rejected', 'Rejected'
 
+    class Specialization(models.TextChoices):
+        ADHD = "ADHD", "ADHD"
+        ADDICTION = "Addiction", "Addiction & Recovery"
+        ANXIETY = "Anxiety", "Anxiety"
+        CAREER = "Career", "Career & Work Stress"
+        CHILD_ADOLESCENT = "child_adolescent"," Child & Adolescent"
+        DEPRESSION = "Depression", "Depression"
+        EATING_DISORDERS = "eating_disorders","Eating Disorders"
+        GRIEF = "Grief","Grief & Loss"
+        TRAUMA = "Trauma", "Trauma & PTSD"
+        RELATIONSHIPS = "Relationships", "Relationships & Couples"
+        PERSONALITY = "personality_disorder","Personality Disorders"
+        PTSD = "PTSD", "PTSD & Trauma"
+        OCD = "OCD", "OCD"
+        STRESS = "Stress","Stress"
+        SUICIDE = "Suicide", "Suicide & Self-Harm"
+        TREATMENT = "Treatment", "Treatment"
+
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='therapist')
     license_code = models.CharField(max_length=50)
     where_to_check_license = models.URLField()
