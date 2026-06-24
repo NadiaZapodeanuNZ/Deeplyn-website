@@ -1,18 +1,12 @@
-
-from django.core.mail import send_mail
-from django.utils import timezone
-from datetime import timedelta
 from .models import EmailVerification
 from django.core.mail import EmailMessage
 from django.core.mail import EmailMultiAlternatives
 from decouple import config
 from django.template.loader import render_to_string
 import datetime
-
-#--------------BLOCK MESSAGE - USER BLOCKED - TOO MANY ATTEMPTS-----------------
+from django.utils import timezone
 
 def format_block_message(blocked_until):
-
     delta = blocked_until - timezone.now()
     total_minutes = max(0, int(delta.total_seconds() // 60))
 
@@ -21,11 +15,9 @@ def format_block_message(blocked_until):
         unit = "hour" if hours == 1 else "hours"
         return f"Too many attempts. Try again in {hours} {unit}."
 
-    # if less than 60 minutes, show minutes
     unit = "minute" if total_minutes == 1 else "minutes"
     return f"Too many attempts. Try again in {total_minutes} {unit}."
 
-# ------------------EMAIL VERIFICATION - TOKEN GENERATION AND SENDING-----------------
 
 def create_verification_and_send_email(user):
     token = generate_and_store_token(user)
@@ -37,8 +29,7 @@ def generate_and_store_token(user):
         user=user,
         defaults={
             'token': '',
-            'expires_at': timezone.now()}
-    )
+            'expires_at': timezone.now()})
     return verification.generate_new_token()
 
 
@@ -52,19 +43,24 @@ def send_verification_email(user, token):
         f"Do not share this code with anyone.\n\n"
         f"If you did not create an account, please ignore this email!\n\n"
         f"Best regards,\n"
-        f"Deeplyn"
-    )
+        f"Deeplyn" )
 
-    html_content = render_to_string("emails/verification.html", {"username": user.username,"token": token,})
+    html_content = render_to_string("emails/verification.html", 
+    {
+        "username": user.username,
+        "token": token
+    })
 
     email = EmailMultiAlternatives(
         subject=subject,
-        body=text_content, 
+        body=text_content,
         from_email=config('EMAIL_HOST_USER'),
         to=[user.email])
+    
     email.attach_alternative(html_content, "text/html")
     email.send()
-    
+
+
 def send_forgot_password_email(user, token):
     magic_link = f"http://localhost:5173/users/login/with-link?token={token}"
     reset_link = f"http://localhost:5173/users/reset-password?token={token}"
@@ -76,78 +72,51 @@ def send_forgot_password_email(user, token):
         f"Login directly: {magic_link}\n\n"
         f"Reset password: {reset_link}\n\n"
         f"Both links expire in 15 minutes.\n\n"
-        f"Best regards,\nDeeplyn"
-    )
-    html_content = f"""
-                    <html>
-                    <body>
-                        <p>Hello, <strong>{user.username}</strong>!</p>
-                        <p>We received a request to access your Deeplyn account.</p>
-                        <p><a href="{magic_link}">Login directly (no password needed)</a></p>
-                        <p><a href="{reset_link}">Reset your password instead</a></p>
-                        <p>Both links expire in 15 minutes.</p>
-                        <p>Best regards,<br>Deeplyn</p>
-                    </body>
-                    </html>
-                    """
-    
+        f"Best regards,\nDeeplyn")
+
+    html_content = render_to_string("emails/forgot_password.html", {
+        "username": user.username,
+        "magic_link": magic_link,
+        "reset_link": reset_link})
+
     email = EmailMultiAlternatives(
-        subject = subject,
-        body  = text_content,
-        from_email = config('EMAIL_HOST_USER'),
-        to  = [user.email])
+        subject=subject,
+        body=text_content,
+        from_email=config('EMAIL_HOST_USER'),
+        to=[user.email])
+    
     email.attach_alternative(html_content, "text/html")
-    email.send(fail_silently=False)
+    email.send()
+
 
 def therapist_documents_path(instance, filename):
-
-    # it s a callable function for upload_to!!
-    # instance -> the TherapistProfile object
     first_name = instance.user.first_name
     last_name = instance.user.last_name
-    return f'therapist_documents/{datetime.now().strftime("%Y/%m")}/{first_name}_{last_name}/{filename}'
+    return f'therapist_documents/{timezone.now().strftime("%Y/%m")}/{first_name}_{last_name}/{filename}'
+
 
 def send_therapist_approved_email(user):
     subject = "Your Deeplyn therapist application has been approved!"
 
     text_content = (
         f"Hello, {user.first_name}!\n\n"
-        f"Great news — your application to join Deeplyn as a therapist "
+        f"Great news - your application to join Deeplyn as a therapist "
         f"has been reviewed and approved.\n\n"
         f"You can now log in and set up your therapist profile:\n"
         f"http://localhost:5173/login\n\n"
         f"Welcome to the Deeplyn community!\n\n"
         f"Best regards,\n"
-        f"The Deeplyn Team"
-    )
+        f"Deeplyn")
 
-    html_content = f"""
-<html>
-<body style="font-family: Arial, sans-serif; color: #333;">
-    <h2 style="color: #6B21A8;">Welcome to Deeplyn, {user.first_name}! 🎉</h2>
-    <p>Your application to join Deeplyn as a licensed therapist has been 
-    <strong style="color: green;">approved</strong>.</p>
-    <p>You can now log in and start setting up your profile, 
-    adding your specializations, and accepting clients.</p>
-    <p>
-        <a href="http://localhost:5173/login" 
-           style="background-color: #6B21A8; color: white; padding: 10px 20px; 
-                  border-radius: 6px; text-decoration: none;">
-            Log in to Deeplyn
-        </a>
-    </p>
-    <br>
-    <p>Best regards,<br><strong>The Deeplyn Team</strong></p>
-</body>
-</html>
-"""
+    html_content = render_to_string("emails/therapist_approved.html", {
+        "user": user})
 
     email = EmailMultiAlternatives(
         subject=subject,
         body=text_content,
         from_email=config('EMAIL_HOST_USER'),
-        to=[user.email],
-    )
+        to=[user.email])
+    
     email.attach_alternative(html_content, "text/html")
     email.send(fail_silently=False)
 
@@ -165,30 +134,160 @@ def send_therapist_rejected_email(user):
         f"with updated documents.\n\n"
         f"If you have any questions, please contact us at nzapodeanu@gmail.com\n\n"
         f"Best regards,\n"
-        f"Deeplyn "
-    )
+        f"Deeplyn")
 
-    html_content = f"""
-<html>
-<body style="font-family: Arial, sans-serif; color: #333;">
-    <h2 style="color: #6B21A8;">An update on your application</h2>
-    <p>Hello, <strong>{user.first_name}</strong>,</p>
-    <p>Thank you for your interest in joining Deeplyn as a therapist. 
-    After carefully reviewing your application and submitted documents, 
-    we were unfortunately <strong style="color: #dc2626;">unable to approve</strong> 
-    your request at this time.</p>
-    <p>This may be due to incomplete documentation or information that 
-    could not be verified. You are welcome to 
-    <a href="http://localhost:5173/register/therapist">submit a new application</a> 
-    with updated documents.</p>
-    <p>If you have questions or need clarification, feel free to reach us at 
-    <a href="mailto:nzapodeanu@gmai.com">nzapodeanu@gmai.com</a>.</p>
-    <br>
-    <p>Best regards,<br><strong>Deeplyn</strong></p>
-</body>
-</html>
-"""
+    html_content = render_to_string("emails/therapist_rejected.html", {
+        "user": user})
 
-    email = EmailMultiAlternatives(subject=subject,body=text_content,from_email=config('EMAIL_HOST_USER'),to=[user.email])
+    email = EmailMultiAlternatives(
+        subject=subject,
+        body=text_content,
+        from_email=config('EMAIL_HOST_USER'),
+        to=[user.email])
+    
     email.attach_alternative(html_content, "text/html")
     email.send(fail_silently=False)
+
+
+def send_crisis_email(therapist, client, message):
+    subject = f"URGENT: {client.first_name} {client.last_name} needs help"
+
+    text_content = (
+        f"Hello, {therapist.first_name},\n\n"
+        f"Your client {client.first_name} {client.last_name} has triggered a crisis alert.\n\n"
+        f"{'Message from client: ' + message if message else 'No message was provided.'}\n\n"
+        f"Please reach out as soon as possible.\n\n"
+        f"Deeplyn")
+
+    html_content = render_to_string("emails/crisis.html", {
+        "therapist": therapist,
+        "client": client,
+        "message":message})
+
+    email = EmailMultiAlternatives(
+        subject=subject,
+        body=text_content,
+        from_email=config('EMAIL_HOST_USER'),
+        to=[therapist.email])
+    
+    email.attach_alternative(html_content, "text/html")
+    email.send(fail_silently=False)
+
+def send_quiz_shared_notification(therapist, client):
+    subject = "A patient shared their quiz answers with you"
+    text_content = (
+        f"Hello, {therapist.first_name} {therapist.last_name}!\n\n"
+        f"Your patient {client.first_name} {client.last_name} has shared their daily quiz answers with you.\n\n"
+        f"Log in to Deeplyn to view their responses.\n\n"
+        f"Best regards,\n"
+        f"Deeplyn"
+    )
+
+    html_content = render_to_string("emails/quiz_shared.html", {
+        "therapist_first_name": therapist.first_name,
+        "therapist_last_name": therapist.last_name,
+        "client_first_name": client.first_name,
+        "client_last_name": client.last_name,
+    })
+
+    email = EmailMultiAlternatives(
+        subject=subject,
+        body=text_content,
+        from_email=config('EMAIL_HOST_USER'),
+        to=[therapist.email]
+    )
+
+    email.attach_alternative(html_content, "text/html")
+    email.send()
+
+def send_quiz_assigned_notification(client, therapist):
+    subject = "You have a new quiz from your therapist"
+    text_content = (
+        f"Hello, {client.first_name} {client.last_name}!\n\n"
+        f"Your therapist {therapist.first_name} {therapist.last_name} has assigned you a new daily quiz.\n\n"
+        f"Log in to Deeplyn to complete it.\n\n"
+        f"Best regards,\n"
+        f"Deeplyn")
+
+    html_content = render_to_string("emails/quiz_assigned.html", {
+        "client_first_name": client.first_name,
+        "client_last_name": client.last_name,
+        "therapist_first_name": therapist.first_name,
+        "therapist_last_name": therapist.last_name,
+    })
+
+    email = EmailMultiAlternatives(
+        subject=subject,
+        body=text_content,
+        from_email=config('EMAIL_HOST_USER'),
+        to=[client.email])
+
+    email.attach_alternative(html_content, "text/html")
+    email.send()
+
+def send_exercise_assigned_notification(client, therapist, exercise):
+    category = exercise.category.upper()
+    source = "Deeplyn(APP)" if exercise.is_predefined else therapist.first_name + " " + therapist.last_name
+
+    subject = f"You have a new exercise assigned by your therapist"
+    text_content = (
+        f"Hello, {client.first_name} {client.last_name}!\n\n"
+        f"Your therapist {therapist.first_name} {therapist.last_name} has assigned you a new exercise:\n\n"
+        f"Title: {exercise.title}\n"
+        f"Category: {category}\n"
+        f"Source: {source}\n\n"
+        f"Log in to Deeplyn to complete it.\n\n"
+        f"Best regards,\n"
+        f"Deeplyn"
+    )
+
+    html_content = render_to_string("emails/exercise_assigned.html", {
+        "client_first_name": client.first_name,
+        "client_last_name": client.last_name,
+        "therapist_first_name": therapist.first_name,
+        "therapist_last_name": therapist.last_name,
+        "exercise_title": exercise.title,
+        "exercise_category": category,
+        "exercise_source": source,
+    })
+
+    email = EmailMultiAlternatives(
+        subject=subject,
+        body=text_content,
+        from_email=config('EMAIL_HOST_USER'),
+        to=[client.email]
+    )
+    email.attach_alternative(html_content, "text/html")
+    email.send()
+
+def send_completion_shared_notification(therapist, client, exercise):
+    category = exercise.category.upper()
+
+    subject = "A patient shared an exercise completion with you"
+    text_content = (
+        f"Hello, {therapist.first_name} {therapist.last_name}!\n\n"
+        f"Your patient {client.first_name} {client.last_name} has shared a completion for:\n\n"
+        f"Title: {exercise.title}\n"
+        f"Category: {category}\n\n"
+        f"Log in to Deeplyn to view their response.\n\n"
+        f"Best regards,\n"
+        f"Deeplyn"
+    )
+
+    html_content = render_to_string("emails/completion_shared.html", {
+        "therapist_first_name": therapist.first_name,
+        "therapist_last_name": therapist.last_name,
+        "client_first_name": client.first_name,
+        "client_last_name": client.last_name,
+        "exercise_title": exercise.title,
+        "exercise_category": category,
+    })
+
+    email = EmailMultiAlternatives(
+        subject=subject,
+        body=text_content,
+        from_email=config('EMAIL_HOST_USER'),
+        to=[therapist.email]
+    )
+    email.attach_alternative(html_content, "text/html")
+    email.send()

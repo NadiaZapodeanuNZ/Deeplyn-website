@@ -28,8 +28,6 @@ const inputClass =
     "text-sm placeholder:text-gray-400 " +
     "focus:outline-none focus:ring-2 focus:ring-purple-500 transition";
 
-
-// THIS FUNCTION helps the frontend to integrate the mesages FROM the backend!!!!
 function parseBackendError(err)
 {
     if (!err.response || !err.response.data) 

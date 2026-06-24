@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+
+    <h2>Hello, <strong>{{ therapist.first_name }} {{ therapist.last_name }}</strong>!</h2>
+
+    <p>Your patient <strong>{{ client.first_name }} {{ client.last_name }}</strong>
+    has accepted your session proposal for:</p>
+
+    <div style="background-color: #059669; color: white; padding: 16px 32px;
+                font-size: 20px; font-weight: bold; text-align: center;
+                border-radius: 8px; margin: 24px 0;">
+        {{ date_str }}
+    </div>
+
+    <p>The session is now confirmed. You can view it in your Deeplyn dashboard.</p>
+
+    <p>Best regards,<br><strong>Deeplyn</strong></p>
+
+</body>
+</html>

@@ -1,15 +1,13 @@
 from django.db import models
 from django.contrib.auth import get_user_model
-from django.core.validators import MinValueValidator, MaxValueValidator
-User = get_user_model()
+from users.models import ClientTherapist
+from django.utils import timezone
 
+
+User = get_user_model()
 
 class Journal(models.Model):
     user = models.OneToOneField(User,on_delete=models.CASCADE,related_name='journal')
-    # one to one field 
-    # so an user has only one journal and a journal belongs to only one user
-    # in this case , the journal is created automatically when the user is created
-    # and Django automatically put CONSTRAINTS UNIQUE on user id in the journal table
     created_at = models.DateTimeField(auto_now_add=True)
     def __str__(self):
         return f"{self.user.username}'s Journal"
@@ -20,29 +18,19 @@ class Journal(models.Model):
         db_table = 'journals'
 
 class Note(models.Model):
-
     class EmotionsSource(models.TextChoices):
         NONE = 'none', 'None'
         MANUAL = 'manual', 'Manual'
         TRANSFORMER = 'transformer', 'Automatically'
-        # first element is the value stored in the database, second element is the human readable name
-
 
     journal = models.ForeignKey(Journal,on_delete=models.CASCADE,related_name='notes')
-    # crypted fields
-    title_encrypted = models.BinaryField()
-    content_encrypted = models.BinaryField()
-
-    # crypted because i want to provide security/confidentiality
-    # for the user's notes, so even if someone gets access to the database,
-    # they won't be able to read the notes without the encryption key
-
-
-    # plaintext fields
+    title = models.CharField(max_length=32, default='')
+    content = models.TextField(max_length=1500,default ='')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     is_favorite = models.BooleanField(default=False)
-    # a note can be favourite!
+    is_shared  = models.BooleanField(default=False)
+    
     emotions_source = models.CharField(max_length=15,choices=EmotionsSource.choices,default=EmotionsSource.NONE)
 
     def __str__(self):
@@ -57,11 +45,9 @@ class Note(models.Model):
 
 class Emotion(models.Model):
     name = models.CharField(max_length=50, unique=True)
-    vector_index = models.PositiveSmallIntegerField(unique=True)  # 0-27
-
+    vector_index = models.PositiveSmallIntegerField(unique=True)
     def __str__(self):
         return f"{self.vector_index} — {self.name}"
-
     class Meta:
         ordering = ['vector_index']
         verbose_name = 'Emotion'
@@ -69,12 +55,9 @@ class Emotion(models.Model):
         db_table = 'emotions'
 
 class NoteEmotion(models.Model):
-
     class Source(models.TextChoices):
         MANUAL = 'manual', 'Manual'
         TRANSFORMER = 'transformer', 'Automatically'
-       
-
     note = models.ForeignKey(Note, on_delete=models.CASCADE, related_name='note_emotions')
     emotion = models.ForeignKey(Emotion, on_delete=models.CASCADE, related_name='note_emotions')
     intensity = models.FloatField()  # 0.0 - 1.0
@@ -94,3 +77,21 @@ class NoteEmotion(models.Model):
                 name='intensity_range'
             )
         ]
+
+
+class SharedNote(models.Model):
+    note = models.ForeignKey(Note, on_delete=models.SET_NULL, null=True, related_name='shared_copies')
+    client = models.ForeignKey(User, on_delete=models.CASCADE, related_name='shared_notes_as_client')
+    therapist = models.ForeignKey(User, on_delete=models.CASCADE, related_name='shared_notes_as_therapist')
+    title = models.CharField(max_length=32)
+    content = models.TextField(max_length=1500)
+    emotions_source = models.CharField(max_length=15, choices=Note.EmotionsSource.choices, default=Note.EmotionsSource.NONE)
+    emotions_snapshot = models.JSONField(default=list, blank=True)
+    shared_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'shared_notes'
+        unique_together = ('note', 'therapist')
+
+    def __str__(self):
+        return f"{self.client.username} - {self.therapist.username} | {self.title}"

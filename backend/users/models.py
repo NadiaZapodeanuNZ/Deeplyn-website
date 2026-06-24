@@ -7,7 +7,6 @@ import random
 import string
 import uuid
 
-
 class User(AbstractUser):
     class Role(models.TextChoices):
         CLIENT = 'client', 'Client'
@@ -77,7 +76,7 @@ class TherapistProfile(models.Model):
         db_table = 'therapist'
 
     def __str__(self):
-        return f"{self.user.username} — {self.license_code} ({self.request_status})"
+        return f"{self.user.username} - {self.license_code} ({self.request_status})"
     
     @property
     def is_approved(self):
@@ -95,7 +94,7 @@ class EmailVerification(models.Model):
     resend_attempts = models.PositiveIntegerField(default=0)
     failed_attempts = models.PositiveIntegerField(default=0)
     blocked_until = models.DateTimeField(null=True, blank=True)
-    first_resend_at  = models.DateTimeField(null=True, blank=True)
+    first_resend_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         verbose_name = "Email Verification"
@@ -129,7 +128,6 @@ class PasswordReset(models.Model):
 
     def __str__(self):
         return f"{self.user.username} - {self.token}"
-    
 
     def is_expired(self):
         return timezone.now() > self.expires_at
@@ -138,3 +136,49 @@ class PasswordReset(models.Model):
         if self.blocked_until is None:
             return False
         return timezone.now() < self.blocked_until
+
+
+class ClientTherapist(models.Model):
+
+    class Status(models.TextChoices):
+        PENDING = 'pending', 'Pending'
+        ACTIVE = 'active', 'Active'
+        ENDED = 'ended', 'Ended'
+
+    client = models.ForeignKey(User, on_delete=models.CASCADE, related_name='therapist_relations')
+    therapist = models.ForeignKey(User, on_delete=models.CASCADE, related_name='client_relations')
+    status = models.CharField(max_length=10, choices=Status.choices, default=Status.PENDING)
+    created_at = models.DateTimeField(auto_now_add=True)
+    ended_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        db_table = 'client_therapist'
+
+    def __str__(self):
+        return f"{self.client.username} - {self.therapist.username} ({self.status})"
+
+    def end_collaboration(self):
+        from journal.models import SharedNote, Note
+        from therapy.models import Session
+        shared_note_ids = SharedNote.objects.filter(client=self.client,therapist=self.therapist,note__isnull=False).values_list('note_id', flat=True)
+        Note.objects.filter(id__in=shared_note_ids).update(is_shared=False)
+        SharedNote.objects.filter(client=self.client, therapist=self.therapist).delete()
+        Session.objects.filter(client=self.client, therapist=self.therapist).delete()
+        self.status = self.Status.ENDED
+        self.ended_at = timezone.now()
+        self.save(update_fields=['status','ended_at'])
+
+
+class CrisisAlert(models.Model):
+    client = models.ForeignKey(User, on_delete=models.CASCADE, related_name='crisis_alerts')
+    therapist = models.ForeignKey(User, on_delete=models.CASCADE, related_name='received_crisis_alerts')
+    message = models.TextField(blank=True)
+    is_seen = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'crisis_alerts'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"Crisis: {self.client.username} - {self.therapist.username} ({self.created_at})"

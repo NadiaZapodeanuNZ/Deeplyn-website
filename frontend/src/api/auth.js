@@ -18,8 +18,8 @@ export const resendToken = async ({email}) => {
     return response.data;
 };
 
-export const login = async (form) => {
-    const response = await api.post('/users/login/', form);
+export const login = async (formData) => {
+    const response = await api.post('/users/login/', formData);
     return response.data;
 };
 
@@ -28,12 +28,25 @@ export const forgotPassword = async ({email}) => {
     return response.data;
 };
 
-export const resetPassword = async () => {
-    const response = await api.get('/users/reset-password/');
+export const resetPassword = async (token, password, confirmPass) => {
+    const response = await api.post('/users/reset-password/', {
+        token: token,
+        password: password,
+        confirm_pass: confirmPass,
+    });
     return response.data;
-}
+};
 
 export const getCurrentUser = async () => {
     const response = await api.get('/users/me/');
     return response.data;
 };
+
+export const logout = async () => {
+    await api.post('/users/logout/');
+};
+
+export const loginWithLink = async (token) => {
+    const response = await api.get(`/users/login/with-link/?token=${token}`);
+    return response.data;
+}

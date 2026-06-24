@@ -2,11 +2,9 @@ from rest_framework.views import exception_handler as drf_default_handler
 from rest_framework.response import Response
 from rest_framework import status
 from users.exceptions import AppException
-
+import traceback
 
 def custom_exception_handler(exc, context):
-    # Case 1:Customized exceptions(those that inherit from AppException) 
-    # returns the custom error format defined in AppException
     if isinstance(exc, AppException):
         return Response({
             "error": {
@@ -18,9 +16,8 @@ def custom_exception_handler(exc, context):
 
     response = drf_default_handler(exc, context)
 
-    # Case 2:Unknown exception 
-    # returns a generic 500
     if response is None:
+        traceback.print_exc()
         return Response({
             "error": {
                 "code": "internal_server_error",
@@ -28,10 +25,7 @@ def custom_exception_handler(exc, context):
                 "details": {},
             }
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-    # Case 3: DRF validation errors (from serializer.is_valid())
-    # These come as a dict {"field": ["error msg"]} and i wanna 
-    # transform them in a custom error format
+    
     if response.status_code == status.HTTP_400_BAD_REQUEST:
         original_data = response.data
 

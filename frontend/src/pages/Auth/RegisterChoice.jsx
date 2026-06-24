@@ -1,7 +1,8 @@
 import React from "react";
 import { Link } from "react-router-dom";
 
-export default function RegisterChoice() {
+export default function RegisterChoice() 
+{
   return (
     <div className="min-h-screen flex items-center justify-center relative overflow-hidden px-4 py-8">
       <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_center,_#f0abfc_0%,_#d946ef_30%,_#9333ea_60%,_#581c87_100%)]" />
@@ -41,8 +42,7 @@ export default function RegisterChoice() {
           <Link
             to="/register/therapist"
             className="group flex items-center gap-4 p-5 rounded-xl border-2 border-gray-200
-                       hover:border-purple-400 hover:bg-purple-50 transition-all duration-200"
-          >
+                       hover:border-purple-400 hover:bg-purple-50 transition-all duration-200">
             <div className="w-12 h-12 rounded-full bg-purple-100 group-hover:bg-purple-200
                             flex items-center justify-center flex-shrink-0 transition-colors duration-200">
               <svg className="w-6 h-6 text-purple-600" fill="none" viewBox="0 0 24 24"

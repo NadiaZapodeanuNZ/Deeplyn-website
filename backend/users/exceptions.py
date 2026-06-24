@@ -2,8 +2,6 @@
 from config.exceptions import AppException 
 from rest_framework import status
 
-# ----------Exceptions for USER - REGISTER, LOGIN---------
-
 class InvalidCredentials(AppException):
     status_code = status.HTTP_401_UNAUTHORIZED
     default_detail = "Invalid credentials. Try again!"
@@ -75,14 +73,10 @@ class TherapistRejected(AppException):
     default_detail = "Your therapist application has been rejected."
     default_code = "therapist_rejected"
     
-# ------------------Exceptions for email verification---------
-
-
 class TokenExpired(AppException):
     status_code = status.HTTP_400_BAD_REQUEST
     default_detail = "The verification code has expired. Please request a new one!"
     default_code = "token_expired"
-
 
 class InvalidToken(AppException):
     status_code = status.HTTP_400_BAD_REQUEST
@@ -95,9 +89,6 @@ class TooManyAttempts(AppException):
     default_detail = "Too many attempts. Please try again later!"
     default_code = "too_many_attempts"
 
-
-
-# -----Exceptions for password reset---------
 
 class InvalidResetToken(AppException):
     status_code = status.HTTP_400_BAD_REQUEST

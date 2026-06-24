@@ -1,17 +1,13 @@
 import { useState } from "react";
-import Image1 from '../../assets/Landing/write_notes.jpg'
-import Image2 from '../../assets/Landing/select_part.jpg'
-import Image3 from '../../assets/Landing/therapist_part.jpg'
-
-
+import Image1 from '../../assets/Landing/journal.png'
+import Image2 from '../../assets/Landing/share.png'
+import Image3 from '../../assets/Landing/therapist.png'
 
 const slides = [
   { src: Image1, alt: "" },
   { src: Image2, alt: "" },
   { src: Image3, alt: "" },
 ];
-
-
 
 const steps = [
   {
@@ -80,23 +76,20 @@ const Step = ({ step, isLast }) => (
 );
 const ImageSlider = () => {
   const [current, setCurrent] = useState(0);
-
   const prev = () => setCurrent((c) => (c === 0 ? slides.length - 1 : c - 1));
   const next = () => setCurrent((c) => (c === slides.length - 1 ? 0 : c + 1));
 
   return (
     <div className="relative w-full rounded-3xl overflow-hidden
-                  border border-[#9B3CC4]/12 shadow-xl shadow-[#9B3CC4]/08
-                  bg-[#F5EAFF]"
-          style={{ height: 420 }}>
-      <div className="absolute inset-0">
-        {slides.map((slide, i) => (
-          <img key={i} src={slide.src} alt={slide.alt}
-            className="absolute inset-0 w-full h-full object-cover
-                       transition-opacity duration-500 ease-in-out"
-            style={{ opacity: i === current ? 1 : 0 }}/>
-        ))}
-      </div>
+                    border border-[#9B3CC4]/12 shadow-xl shadow-[#9B3CC4]/08
+                    bg-[#F5EAFF]">
+
+      {slides.map((slide, i) => (
+        <img key={i} src={slide.src} alt={slide.alt}
+          className={`w-full h-auto block transition-opacity duration-500 ease-in-out
+                      ${i === current ? "relative opacity-100" : "absolute top-0 left-0 opacity-0 pointer-events-none"}`}/>
+      ))}
+
       <button
         onClick={prev} aria-label="Previous photo"
         className="absolute left-3 top-1/2 -translate-y-1/2
@@ -106,7 +99,8 @@ const ImageSlider = () => {
                    flex items-center justify-center
                    text-[#9B3CC4]
                    hover:bg-white hover:shadow-md
-                   transition-all duration-200"><ChevronLeft />
+                   transition-all duration-200">
+        <ChevronLeft />
       </button>
 
       <button onClick={next} aria-label="Next photo"
@@ -117,7 +111,8 @@ const ImageSlider = () => {
                    flex items-center justify-center
                    text-[#9B3CC4]
                    hover:bg-white hover:shadow-md
-                   transition-all duration-200"><ChevronRight />
+                   transition-all duration-200">
+        <ChevronRight />
       </button>
 
       <div className="absolute bottom-4 left-1/2 -translate-x-1/2
@@ -129,8 +124,7 @@ const ImageSlider = () => {
             style={{width: i === current ? 20 : 7,
                     height: 7,
                     background: i === current ? "linear-gradient(90deg, #9B3CC4, #D44D8C)": "rgba(155,60,196,0.25)",
-                    border: "none",cursor: "pointer",padding: 0}}/>
-        ))}
+                    border: "none",cursor: "pointer",padding: 0}}/>))}
       </div>
     </div>
   );
@@ -140,8 +134,6 @@ export default function TherapistsSection() {
   return (
     <section className="bg-[#FDF6FF] py-20 px-4 sm:px-6">
       <div className="max-w-5xl mx-auto">
-
-        {/* Header */}
         <div className="text-center mb-12">
           <h2 className="mt-4 text-3xl sm:text-4xl font-bold text-[#2D0A38]
                        tracking-tight leading-tight">

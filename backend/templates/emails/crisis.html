@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+
+    <div style="background-color: #dc2626; color: white; padding: 16px 24px;
+                border-radius: 8px 8px 0 0;">
+        <h2 style="margin: 0;">⚠ Crisis Alert</h2>
+    </div>
+
+    <div style="padding: 24px; border: 1px solid #fca5a5;
+                border-top: none; border-radius: 0 0 8px 8px;">
+
+        <p>Hello, <strong>{{ therapist.first_name }}</strong>,</p>
+
+        <p>Your client <strong>{{ client.first_name }} {{ client.last_name }}</strong>
+        has triggered a crisis alert on Deeplyn.</p>
+
+        {% if message %}
+        <p><strong>Message from client:</strong><br>
+        <em style="color: #555;">{{ message }}</em></p>
+        {% else %}
+        <p style="color: #888;"><em>No message was provided.</em></p>
+        {% endif %}
+
+        <p style="color: #dc2626; font-weight: bold;">
+            Please reach out as soon as possible.
+        </p>
+
+        <p>Best regards,<br><strong>Deeplyn</strong></p>
+
+    </div>
+
+</body>
+</html>

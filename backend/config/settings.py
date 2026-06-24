@@ -40,16 +40,13 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-
     'rest_framework',
     'rest_framework_simplejwt',
     'corsheaders',
     'django_filters',
     'rest_framework_simplejwt.token_blacklist',
-    
     'users',
     'journal',
-    'emotions',
     'quiz',
     'exercises',
     'therapy',
@@ -142,6 +139,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
+    'https://remission-headlock-sequester.ngrok-free.app'
 ]
 
 # sending cookies from backend to frontend
@@ -150,6 +148,8 @@ CORS_ALLOW_CREDENTIALS = True
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
+    'https://remission-headlock-sequester.ngrok-free.app',
+
 ]
 
 REST_FRAMEWORK = {

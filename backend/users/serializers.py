@@ -17,7 +17,6 @@ ALLOWED_SPECIALIZATIONS = {
   "Treatment" 
 }
 
-# -------------Register - as a CLIENT------------------------
 
 class RegisterSerializer(serializers.ModelSerializer):
     
@@ -159,9 +158,6 @@ class RegisterSerializer(serializers.ModelSerializer):
         )
         return user
 
-
-# ------------------Register---as--a ---THERAPIST-----------
-
 class TherapistRegisterSerializer(RegisterSerializer):
     license_code = serializers.CharField(required=True, max_length=50)
     where_to_check_license = serializers.URLField(required=True)
@@ -188,29 +184,19 @@ class TherapistRegisterSerializer(RegisterSerializer):
         return value
     
     def validate_documents_pdf(self, file):
-        # Case 1: the extension needs to be verified
         if not file.name.lower().endswith('.pdf'):
             raise InvalidInput(
                 message="The file must have .pdf extension.",
-                details={"field": "documents_pdf"}
-            )
+                details={"field": "documents_pdf"})
         
-        # Case 2: it's important to verify the size of the pdf
-        # I don't want pdfs that are larger than 10MB
         max_size = 10 * 1024 * 1024
         if file.size > max_size:
             raise InvalidInput(
                 message="The file size must not exceed 10MB.",
-                details={"field": "documents_pdf"}
-            )
+                details={"field": "documents_pdf"})
         
-        # Case 3: I need to verify the "magic bytes"
-        # I read the first 5 bytes for the signature of a pdf file
         first_bytes = file.read(5)
         file.seek(0)
-        # seek(0) here means that the pointer will be at the start of the
-        # file. This is important so the file will not be corrupted when
-        # Django saves it later.
         
         if first_bytes != b'%PDF-':
             raise InvalidInput(
@@ -220,14 +206,11 @@ class TherapistRegisterSerializer(RegisterSerializer):
         return file
     
     def validate_specializations(self, value):
-        # Case 1: no more than 5 specializations
         if len(value) > 5:
             raise InvalidInput(
                 message="You cannot select more than 5 specializations.",
-                details={"field": "specializations"}
-            )
-        
-        # Case 2: must be a specialization from the allowed list
+                details={"field": "specializations"})
+
         invalid = set(value) - ALLOWED_SPECIALIZATIONS
         if invalid:
             raise InvalidInput(
@@ -235,15 +218,13 @@ class TherapistRegisterSerializer(RegisterSerializer):
                 details={
                     "field": "specializations",
                     "allowed": sorted(ALLOWED_SPECIALIZATIONS)
-                }
-            )
+                })
         
-        # Case 3: no duplicate specializations
+
         if len(set(value)) != len(value):
             raise InvalidInput(
                 message="Duplicate specializations are not allowed.",
-                details={"field": "specializations"}
-            )
+                details={"field": "specializations"})
         return value
        
     def validate(self, attrs):
@@ -325,16 +306,11 @@ class TherapistRegisterSerializer(RegisterSerializer):
         )
         return user
 
-
-
-#--------------------Login-------------------------------
-
 class LoginSerializer(serializers.Serializer):   
     identifier = serializers.CharField(label="Email or Username")
     password = serializers.CharField(write_only=True)
     remember_me = serializers.BooleanField(default=False)
-
-    def validate(self, attrs):
+    def validate(self, attrs): 
         identifier = attrs.get('identifier', '').strip()
         password = attrs.get('password', '')
         remember_me = attrs.get('remember_me', False)
@@ -357,18 +333,10 @@ class LoginSerializer(serializers.Serializer):
         if not user.is_active:
             raise AccountNotActivated(details={"email": user.email})
 
-
-        if user.is_therapist:
-            if hasattr(user, 'therapist'):
-                if user.therapist.request_status == 'pending':
-                    raise TherapistPending()
-                if user.therapist.request_status == 'rejected':
-                    raise TherapistRejected()        
-            attrs['user'] = user
-            attrs['remember_me'] = remember_me
+        attrs['user'] = user
+        attrs['remember_me'] = remember_me
+ 
         return attrs
-
-#--------------Forgot Password-------------------
 
 class ForgotPasswordSerializer(serializers.Serializer):
     email = serializers.EmailField()
@@ -382,7 +350,6 @@ class ForgotPasswordSerializer(serializers.Serializer):
             raise InvalidEmail()
         return email
 
-# -------------------Reset Password-------------------------
 
 class ResetPasswordSerializer(serializers.Serializer):
  
@@ -403,11 +370,8 @@ class ResetPasswordSerializer(serializers.Serializer):
             raise PasswordMismatch()
         return attrs
 
-#-------------------------User profile (read-only)------------------------
 
-class UserSerializer(serializers.ModelSerializer):
-    # Read-only serializer for GET /users/me/.
-    
+class UserSerializer(serializers.ModelSerializer):  
     therapist_profile = serializers.SerializerMethodField()
     
     class Meta:
@@ -436,9 +400,6 @@ class UserSerializer(serializers.ModelSerializer):
             'specializations': user.therapist.specializations,
             }
 
-
-# ---------------- LOGGEEEED USERS!!!!--------------------------
-# -------------------Change Password----------------------------
 
 class ChangePasswordSerializer(serializers.Serializer):
 

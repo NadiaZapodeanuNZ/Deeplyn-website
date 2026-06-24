@@ -1,19 +1,16 @@
 
 import { Link } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
-
 import logo from "../assets/Landing/logo_full.svg";
-import journal_image from "../assets/Landing/journal_part_v2.jpg";
-import kitty from "../assets/Landing/kitty.jpg";
+import journal_image from "../assets/Landing/landing_page_journal.jpg";
+import kitty from "../assets/Landing/progress_2.jpg";
 import hero from "../assets/Landing/hero.png";
-import pucca from "../assets/Landing/pucca.png";
-
-import UsersRating from "../components/landing/UserRatings.jsx";
+import pucca from "../assets/Landing/quiz.png";
 import FooterLamma from "../components/landing/FooterLamma.jsx";
 import TherapistsSection from "../components/landing/TherapistSection.jsx";
 
-const DailyIcon = () => (
-  <svg viewBox="-2.4 -2.4 28.80 28.80" fill="none" className="w-5 h-5">
+const DailyIcon = () => 
+(<svg viewBox="-2.4 -2.4 28.80 28.80" fill="none" className="w-5 h-5">
     <path d="M10.5 14L17 14" stroke="#9B3CC4" strokeWidth="1.5" strokeLinecap="round" />
     <path d="M7 14H7.5" stroke="#9B3CC4" strokeWidth="1.5" strokeLinecap="round" />
     <path d="M7 10.5H7.5" stroke="#9B3CC4" strokeWidth="1.5" strokeLinecap="round" />
@@ -24,11 +21,10 @@ const DailyIcon = () => (
       stroke="#9B3CC4" strokeWidth="1.5" />
     <path d="M21 16.0002C21 18.8286 21 20.2429 20.1213 21.1215C19.2426 22.0002 17.8284 22.0002 15 22.0002H9C6.17157 22.0002 4.75736 22.0002 3.87868 21.1215C3 20.2429 3 18.8286 3 16.0002V13.0002M16 4.00195C18.175 4.01406 19.3529 4.11051 20.1213 4.87889C21 5.75757 21 7.17179 21 10.0002V12.0002M8 4.00195C5.82497 4.01406 4.64706 4.11051 3.87868 4.87889C3.11032 5.64725 3.01385 6.82511 3.00174 9"
       stroke="#9B3CC4" strokeWidth="1.5" strokeLinecap="round" />
-  </svg>
-);
+  </svg>);
 
-const EmotionIcon = () => (
-  <svg viewBox="0 0 48 48" className="w-5 h-5">
+const EmotionIcon = () => 
+  (<svg viewBox="0 0 48 48" className="w-5 h-5">
     <g fill="none" stroke="#D44D8C" strokeLinejoin="round" strokeWidth="2.5">
       <path d="M24 44c11.046 0 20-8.954 20-20S35.046 4 24 4S4 12.954 4 24s8.954 20 20 20Z" stroke="#D44D8C" />
       <path d="M31 18v1m-14-1v1m14 12s-2 4-7 4s-7-4-7-4" strokeLinecap="round" stroke="#D44D8C" />
@@ -51,7 +47,6 @@ const MeditateIcon = () => (
       fill="#C4703A" fillRule="evenodd" />
   </svg>
 );
-
 
 
 const featureCards = [
@@ -137,7 +132,7 @@ function FeatureScroller() {
   }, []);
 
   return (
-    <section className="w-full bg-[#F8EDFF] py-20">
+    <section className="w-full bg-[#FEF2FF] py-20">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-14">
           <h2 className="mt-4 text-3xl sm:text-4xl font-bold text-[#2D0A38]">
@@ -208,7 +203,6 @@ export default function LandingPage() {
   const currentYear = new Date().getFullYear();
   return (
     <div className="min-h-screen bg-[#FDF6FF]">
-      {/* Nav */}
       <nav className="sticky top-0 z-40 h-15 px-6 py-3
                       flex items-center justify-between
                       bg-[#FDF6FF]/85 backdrop-blur-md
@@ -266,7 +260,7 @@ export default function LandingPage() {
               <span className="italic text-[#9B3CC4]">different</span>
             </h2>
             <p className="mt-3 text-[#7A4A8A] max-w-xl mx-auto leading-relaxed">
-              Designed for people who feel deeply — evidence-based tools and compassionate
+              Designed for people who feel deeply - evidence-based tools and compassionate
               support, available whenever you need it.
             </p>
           </div>
@@ -298,7 +292,7 @@ export default function LandingPage() {
       <div className="h-px bg-gradient-to-r from-transparent via-[#9B3CC4]/20 to-transparent" />
       <section className="bg-[#FDF6FF] py-16 px-4">
         <div className="max-w-5xl mx-auto">
-          <UsersRating />
+          {/* <UsersRating /> */}
         </div>
       </section>
       <FooterLamma />

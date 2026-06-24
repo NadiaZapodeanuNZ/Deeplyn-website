@@ -2,7 +2,8 @@ import React from "react";
 import { Link } from "react-router-dom";
 import llamaSrc from "../../assets/Landing/llama.png";
 
-export default function FooterLamma() {
+export default function FooterLamma() 
+{
   return (
     <section className="w-full py-10 sm:py-14">
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
@@ -27,19 +28,7 @@ export default function FooterLamma() {
                                                 font-medium text-white
                                                 shadow-[0_6px_0_rgba(62,22,120,.25)]
                                                 transition hover:brightness-110 active:translate-y-[1px]
-                                                bg-[linear-gradient(90deg,#6F08E9_0%,#9A2CDB_34%,#D95BCD_67%,#FF8BB5_100%)]">
-                Start Today
-                </Link>
-
-                <Link to="/learn-more" className="flex-col items-center justify-center
-                                                  rounded-xl px-6 py-2.5
-                                                  font-medium text-[#5F5A86]
-                                                  bg-white/70 backdrop-blur
-                                                  border border-white/80
-                                                  shadow-[0_6px_0_rgba(62,22,120,.12)]
-                                                  hover:bg-white/90 active:translate-y-[1px]">
-                  Learn More
-                </Link>
+                                                bg-[linear-gradient(90deg,#6F08E9_0%,#9A2CDB_34%,#D95BCD_67%,#FF8BB5_100%)]">Start Today</Link>
               </div>
             </div>
             <img src={llamaSrc} alt="" loading="lazy"

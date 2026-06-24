@@ -69,15 +69,11 @@ export default function UsersSay() {
           </span>{" "}
           say
         </h2>
-
-        {/* Stage */}
         <div className="relative mx-auto mt-10 sm:mt-12 lg:mt-16 max-w-5xl">
-          {/* Cercul central cu testimonial */}
           <div
             className="mx-auto aspect-square max-w-[520px] rounded-full bg-white shadow-xl ring-1 ring-black/5
                        flex items-center justify-center p-8 sm:p-10"
-            aria-live="polite"
-          >
+            aria-live="polite">
             <figure className="max-w-[38ch] text-center">
               <blockquote className="text-sm sm:text-base text-[#343a5a] italic leading-relaxed">
                 “{a.quote}”
@@ -87,46 +83,37 @@ export default function UsersSay() {
               </figcaption>
             </figure>
           </div>
-
-          {/* Avatar-uri laterale | vizibile de la md în sus */}
           <div className="hidden md:block">
-            {/* stânga sus */}
             <AvatarDot
               className="absolute top-[8%] left-[6%]"
               item={items[0]}
               isActive={active === 0}
               onClick={() => setActive(0)}
             />
-            {/* stânga mijloc */}
             <AvatarDot
               className="absolute top-[42%] left-[4%]"
               item={items[1]}
               isActive={active === 1}
               onClick={() => setActive(1)}
             />
-            {/* stânga jos */}
             <AvatarDot
               className="absolute bottom-[8%] left-[6%]"
               item={items[2]}
               isActive={active === 2}
               onClick={() => setActive(2)}
             />
-
-            {/* dreapta sus */}
             <AvatarDot
               className="absolute top-[8%] right-[6%]"
               item={items[3]}
               isActive={active === 3}
               onClick={() => setActive(3)}
             />
-            {/* dreapta mijloc */}
             <AvatarDot
               className="absolute top-[42%] right-[4%]"
               item={items[4]}
               isActive={active === 4}
               onClick={() => setActive(4)}
             />
-            {/* dreapta jos */}
             <AvatarDot
               className="absolute bottom-[8%] right-[6%]"
               item={items[5]}
@@ -134,8 +121,6 @@ export default function UsersSay() {
               onClick={() => setActive(5)}
             />
           </div>
-
-          {/* Pe mobile: avatar-urile sub cerc, scroll orizontal ușor */}
           <div className="md:hidden mt-8 flex items-center justify-center gap-4 overflow-x-auto no-scrollbar">
             {items.map((it, i) => (
               <AvatarButton
@@ -152,8 +137,6 @@ export default function UsersSay() {
   );
 }
 
-/* === componente mici reutilizabile === */
-
 function AvatarDot({ className = "", item, isActive, onClick }) {
   return (
     <button
@@ -167,14 +150,12 @@ function AvatarDot({ className = "", item, isActive, onClick }) {
       ].join(" ")}
       aria-pressed={isActive}
       aria-label={`${item.name}, ${item.age}`}
-      title={`${item.name}, ${item.age}`}
-    >
+      title={`${item.name}, ${item.age}`}>
       <img
         src={item.avatar}
         alt={`${item.name}`}
         className="size-12 xl:size-14 rounded-full object-cover"
-        loading="lazy"
-      />
+        loading="lazy"/>
     </button>
   );
 }
@@ -191,8 +172,7 @@ function AvatarButton({ item, isActive, onClick }) {
       ].join(" ")}
       aria-pressed={isActive}
       aria-label={`${item.name}, ${item.age}`}
-      title={`${item.name}, ${item.age}`}
-    >
+      title={`${item.name}, ${item.age}`}>
       <img
         src={item.avatar}
         alt={`${item.name}`}

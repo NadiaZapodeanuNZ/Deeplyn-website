@@ -215,4 +215,5 @@ frontend/.env.production
 # Backend environment files (additional safety)
 backend/.env
 backend/.env.local
+backend/emotion_model/
 

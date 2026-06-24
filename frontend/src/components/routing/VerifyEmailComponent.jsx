@@ -19,8 +19,6 @@ export default function VerifyEmailForm() {
     const [error, setError] = useState("");
     const [success, setSuccess] = useState(false);
     const [loading, setLoading] = useState(false);
-
-
     const [resendLoading, setResendLoading] = useState(false);
     const [resendMessage, setResendMessage] = useState("");
 
@@ -84,7 +82,6 @@ export default function VerifyEmailForm() {
         }
     };
 
-    // handle for resend
     const handleResend = async () => {
         setResendMessage("");
         setError("");
@@ -161,8 +158,7 @@ export default function VerifyEmailForm() {
                     type="button"
                     disabled={resendLoading}
                     className="text-purple-600 hover:underline font-medium bg-transparent border-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                    onClick={handleResend}
-                >
+                    onClick={handleResend}>
                     {resendLoading ? "Sending..." : "Resend"}
                 </button>
             </p>

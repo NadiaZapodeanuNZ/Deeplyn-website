@@ -3,20 +3,24 @@ import * as authApi from '../api/auth'
 
 
 const AuthContext = createContext(null)
-export const AuthProvider = ({ children }) => {
+export const AuthProvider = ({ children }) => 
+{
 
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     const checkAuth = async () => {
-      try {
+      try 
+      {
         const userData = await authApi.getCurrentUser()
         setUser(userData)
-      } catch (error) {
-
+      } catch (error) 
+      {
         setUser(null)
-      } finally {
+      } 
+      finally 
+      {
         setLoading(false)
       }
     }
@@ -24,37 +28,31 @@ export const AuthProvider = ({ children }) => {
   }, [])
 
 
-const login = async (form) => {
+const login = async (form) => 
+{
   await authApi.login(form) 
   const userData = await authApi.getCurrentUser()
   setUser(userData)
   return userData
- }
-  const logout = async () => {
+}
+  const logout = async () => 
+  {
     await authApi.logout()
     setUser(null)
-
   }
+  const value = {user, loading, isAuthenticated: user !== null, login, logout, refreshUser}
 
-  const value = {
-    user,
-    loading,
-    isAuthenticated: user !== null,
-    login,
-    logout,
-  }
-
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  )
+  return (<AuthContext.Provider value={value}>{children}</AuthContext.Provider>)
 }
 
-export const useAuth = () => {
+const refreshUser = async () => {
+    const userData = await authApi.getCurrentUser()
+    setUser(userData)
+}
+export const useAuth = () => 
+{
   const context = useContext(AuthContext)
-  if (context === null) {
+  if (context === null) 
     throw new Error('useAuth must be used inside an AuthProvider')
-  }
   return context
 }

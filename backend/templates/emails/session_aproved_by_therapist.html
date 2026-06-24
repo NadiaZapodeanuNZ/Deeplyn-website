@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+
+    <h2>Hello, <strong>{{ client.first_name }} {{ client.last_name }}</strong>!</h2>
+
+    <p>Great news! <strong>{{ therapist.first_name }} {{ therapist.last_name }}</strong>
+    has approved your session request for:</p>
+
+    <div style="background-color: #059669; color: white; padding: 16px 32px;
+                font-size: 20px; font-weight: bold; text-align: center;
+                border-radius: 8px; margin: 24px 0;">
+        {{ date_str }}
+    </div>
+
+    <p>You can view the full details in your Deeplyn calendar.</p>
+
+    <p>Best regards,<br><strong>Deeplyn</strong></p>
+
+</body>
+</html>
