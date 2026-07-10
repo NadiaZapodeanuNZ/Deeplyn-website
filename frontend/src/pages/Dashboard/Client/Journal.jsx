@@ -287,10 +287,7 @@ function TransformerPanel({ isLoading, results, onReanalyze }) {
           ))}
         </div>
 
-        <button onClick={onReanalyze}
-              className="w-full py-2 rounded-xl text-xs font-semibold text-purple-600 bg-purple-50 hover:bg-purple-100 transition">
-          Re-analyze
-        </button>
+        
 
       </div>
     );
