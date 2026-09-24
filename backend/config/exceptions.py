@@ -3,7 +3,6 @@ from rest_framework import status
 import traceback
 
 class AppException(APIException):
-
     status_code = status.HTTP_400_BAD_REQUEST
     default_detail = "An error occurred."
     default_code = "error"
